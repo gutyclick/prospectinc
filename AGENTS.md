@@ -89,3 +89,10 @@ Mientras no exista `package.json`, estos comandos son contratos del proyecto y n
 - Gmail solo podrá crear borradores cuando llegue su fase; WhatsApp usará enlaces click-to-chat con envío manual.
 - No implementar autenticación, pagos, multitenencia, extensión de navegador ni funciones externas antes de su fase correspondiente.
 - Mantener control humano explícito antes de cualquier comunicación comercial.
+- Ninguna clave secreta puede usar el prefijo `NEXT_PUBLIC_`.
+- `SUPABASE_SERVICE_ROLE_KEY` solo puede importarse en módulos marcados como `server-only`; nunca debe llegar a componentes cliente.
+- No registrar tokens, claves, cuerpos completos de correos ni información sensible en logs.
+- No automatizar WhatsApp Web.
+- Los trabajos en segundo plano y los manejadores de eventos externos deben ser idempotentes.
+- Toda integración externa debe permanecer detrás de una interfaz reemplazable.
+- Mantener los repositorios simulados durante la migración hasta que su reemplazo real esté validado.
