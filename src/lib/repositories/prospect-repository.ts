@@ -1,4 +1,4 @@
-import type { Prospect, WebsiteStatus } from "@/lib/domain";
+import type { CommercialStatus, Prospect, WebsiteStatus } from "@/lib/domain";
 import { mockProspects } from "@/lib/mock-data";
 import { prospectSchema } from "@/lib/validation";
 
@@ -20,6 +20,10 @@ export type ProspectRepository = {
   getPriorityProspects(limit?: number): Promise<Prospect[]>;
   getProspectById(id: string): Promise<Prospect | null>;
   createProspect(input: CreateProspectInput): Promise<Prospect>;
+  updateCommercialStatus(
+    id: string,
+    status: CommercialStatus,
+  ): Promise<Prospect>;
 };
 
 let prospects: Prospect[] = [...mockProspects];
@@ -68,6 +72,20 @@ export const prospectRepository: ProspectRepository & { reset(): void } = {
 
     prospects = [prospect, ...prospects];
     return prospect;
+  },
+
+  async updateCommercialStatus(id, status) {
+    const current = prospects.find((prospect) => prospect.id === id);
+    if (!current) throw new Error("El prospecto no existe.");
+    const updated = prospectSchema.parse({
+      ...current,
+      commercialStatus: status,
+      updatedAt: new Date().toISOString(),
+    });
+    prospects = prospects.map((prospect) =>
+      prospect.id === id ? updated : prospect,
+    );
+    return updated;
   },
 
   reset() {

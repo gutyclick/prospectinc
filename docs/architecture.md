@@ -98,6 +98,8 @@ Durante el prototipo, `searchRepository` mantiene una colección mutable únicam
 
 `proposalRepository` permite crear borradores y cambiar estados dentro de la sesión. El modelo de propuesta conserva servicio, precio, moneda, plazo, resumen, elementos incluidos, ángulo recomendado y llamado a la acción. La generación de contenido de la primera fase es una función local determinística basada en el prospecto y la plantilla; no invoca OpenAI ni servicios externos. La acción de envío solo marca una propuesta como lista después de una confirmación explícita y nunca transmite mensajes.
 
+La Bandeja combina conversaciones, prospectos y propuestas mediante sus repositorios. `conversationRepository` conserva temporalmente borradores de respuesta, mensajes marcados como enviados, estados y fechas de seguimiento; `prospectRepository` mantiene sincronizado el estado comercial para negociación, ganado o descarte. La clasificación de intención se expone mediante `ConversationIntelligence`, cuya implementación actual es local y determinística. Marcar una respuesta como enviada solo registra una simulación en memoria y no contacta servicios externos.
+
 ## Estado y obtención de datos
 
 - Preferir parámetros de ruta y búsqueda para estado navegable.
