@@ -32,24 +32,36 @@ En fases posteriores, los adaptadores simulados podrán reemplazarse por Supabas
 ## Organización prevista
 
 ```text
-app/                  Rutas, layouts y composición de páginas
-components/
-  ui/                 Componentes base de shadcn/ui
-  shared/             Componentes reutilizables de producto
-features/
-  dashboard/          Inicio
-  searches/           Búsquedas
-  prospects/          Prospectos
-  proposals/          Propuestas
-  inbox/              Bandeja
-  settings/           Configuración
-lib/                  Utilidades e infraestructura compartida
-data/                 Fixtures y adaptadores simulados
-types/                Tipos compartidos solo cuando no pertenecen a un módulo
+src/
+  app/                Rutas, layouts y composición de páginas
+  components/
+    layout/           Estructura global y navegación
+    ui/               Componentes base de shadcn/ui
+    dashboard/        Inicio
+    searches/         Búsquedas
+    prospects/        Prospectos
+    proposals/        Propuestas
+    inbox/            Bandeja
+  lib/
+    domain/           Reglas y modelos de dominio
+    mock-data/        Fixtures explícitamente ficticios
+    repositories/     Contratos y adaptadores de datos
+    validation/       Esquemas de validación
+    utils/            Utilidades compartidas
+  hooks/              Hooks reutilizables
+  types/              Tipos transversales
 docs/                 Decisiones y documentación del producto
 ```
 
 Esta estructura es una guía para la fase de implementación, no una obligación de crear carpetas vacías. Los tipos, componentes y lógica específicos deben permanecer cerca de su módulo.
+
+## Herramientas de desarrollo
+
+- pnpm administra dependencias y ejecuta los scripts del proyecto.
+- ESLint aplica las reglas recomendadas de Next.js y TypeScript.
+- Prettier mantiene un formato uniforme, incluido el orden de utilidades de Tailwind CSS.
+- Vitest y React Testing Library cubren lógica y componentes desde la perspectiva del usuario.
+- La configuración de pruebas usa jsdom y el alias `@/*`, igual que la aplicación.
 
 ## Modelo de dominio inicial
 

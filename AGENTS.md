@@ -22,12 +22,12 @@ Este repositorio contiene Prospector AI, una aplicación web en español para de
 Una vez inicializada la aplicación Next.js, se deberán mantener disponibles estos comandos:
 
 ```bash
-npm install
-npm run dev
-npm run lint
-npm run test
-npm run typecheck
-npm run build
+pnpm install
+pnpm dev
+pnpm lint
+pnpm test
+pnpm typecheck
+pnpm build
 ```
 
 Mientras no exista `package.json`, estos comandos son contratos del proyecto y no están disponibles todavía. No se deben simular resultados de validación.
@@ -35,8 +35,8 @@ Mientras no exista `package.json`, estos comandos son contratos del proyecto y n
 ## Validaciones obligatorias
 
 - Después de cada cambio, ejecutar las validaciones relevantes disponibles.
-- Para cambios de código, ejecutar como mínimo `npm run lint`, `npm run typecheck` y las pruebas relacionadas.
-- Antes de entregar una fase o cambio transversal, ejecutar `npm run build`.
+- Para cambios de código, ejecutar como mínimo `pnpm lint`, `pnpm typecheck` y las pruebas relacionadas.
+- Antes de entregar una fase o cambio transversal, ejecutar `pnpm build`.
 - Si una validación no puede ejecutarse, documentar claramente el motivo.
 - No dejar errores de TypeScript, lint, pruebas o build conocidos.
 
