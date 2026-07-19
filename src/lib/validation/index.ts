@@ -1,0 +1,16 @@
+export {
+  activitySchema,
+  activityTypeSchema,
+  commercialStatusSchema,
+  conversationChannelSchema,
+  conversationMessageSchema,
+  conversationSchema,
+  conversationStatusSchema,
+  proposalSchema,
+  proposalStatusSchema,
+  prospectSchema,
+  searchSchema,
+  searchSourceSchema,
+  searchStatusSchema,
+  websiteStatusSchema,
+} from "./domain-schemas";

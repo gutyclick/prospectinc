@@ -78,6 +78,10 @@ Entidades principales previstas:
 
 Los estados comerciales se definirán como una unión literal o enum tipado basado en la especificación de producto.
 
+El modelo implementado usa los nombres técnicos `Prospect`, `Search`, `Proposal`, `Conversation` y `Activity`. Sus tipos se infieren desde esquemas Zod para mantener una sola definición entre validación y TypeScript. Las fechas cruzan la capa de datos como cadenas ISO serializables y las relaciones usan identificadores estables como `prospectId`.
+
+Los estados de sitio web, proceso comercial, búsqueda, propuesta y conversación son uniones literales cerradas. El esquema de `Prospect` exige una URL de origen cuando existe cualquier contacto público y limita el puntaje de oportunidad al intervalo de 0 a 100.
+
 ## Datos simulados
 
 - Deben ser explícitamente ficticios y coherentes entre módulos.
@@ -85,6 +89,8 @@ Los estados comerciales se definirán como una unión literal o enum tipado basa
 - Los fixtures no se importarán directamente desde componentes de presentación; se accederá mediante funciones o repositorios simulados.
 - No se representará una integración externa como si estuviera activa.
 - Los cambios del usuario podrán mantenerse en memoria o almacenamiento local si el prototipo lo requiere, con una capa que permita reemplazar esa persistencia.
+
+La capa actual expone `prospectRepository`, `searchRepository`, `proposalRepository`, `conversationRepository` y `activityRepository` mediante contratos asíncronos. Las métricas del dashboard se calculan componiendo esos repositorios, sin leer fixtures desde las páginas ni duplicar datos relacionados.
 
 ## Estado y obtención de datos
 
