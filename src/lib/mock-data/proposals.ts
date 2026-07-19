@@ -20,6 +20,8 @@ export const mockProposals = z.array(proposalSchema).parse([
     ],
     recommendedAngle:
       "Destacar reputación local, especialidades y facilidad para reservar.",
+    deliveryTime: "7 días hábiles",
+    callToAction: "Agenda una llamada de 20 minutos para revisar la propuesta.",
     createdAt: "2026-07-18T15:45:00.000Z",
     updatedAt: "2026-07-18T18:30:00.000Z",
   },
@@ -39,6 +41,8 @@ export const mockProposals = z.array(proposalSchema).parse([
     ],
     recommendedAngle:
       "Reducir llamadas repetitivas y facilitar cotizaciones desde el teléfono.",
+    deliveryTime: "5 días hábiles",
+    callToAction: "Confirma el alcance para comenzar esta semana.",
     createdAt: "2026-07-17T14:10:00.000Z",
     updatedAt: "2026-07-18T17:00:00.000Z",
   },
@@ -57,6 +61,8 @@ export const mockProposals = z.array(proposalSchema).parse([
     ],
     recommendedAngle:
       "Convertir el interés de redes sociales en reservas directas.",
+    deliveryTime: "10 días hábiles",
+    callToAction: "Revisemos juntos el flujo de reservas propuesto.",
     createdAt: "2026-07-16T19:00:00.000Z",
     updatedAt: "2026-07-18T23:00:00.000Z",
   },
@@ -76,6 +82,8 @@ export const mockProposals = z.array(proposalSchema).parse([
     ],
     recommendedAngle:
       "Transmitir especialización y confianza antes de la primera consulta.",
+    deliveryTime: "15 días hábiles",
+    callToAction: "Coordina una revisión de contenidos con el equipo.",
     createdAt: "2026-07-15T16:00:00.000Z",
     updatedAt: "2026-07-18T20:20:00.000Z",
   },
@@ -95,6 +103,8 @@ export const mockProposals = z.array(proposalSchema).parse([
     ],
     recommendedAngle:
       "Facilitar la decisión con servicios claros, disponibilidad y confianza.",
+    deliveryTime: "10 días hábiles",
+    callToAction: "Aprueba la propuesta para reservar la fecha de inicio.",
     createdAt: "2026-07-14T15:30:00.000Z",
     updatedAt: "2026-07-18T22:00:00.000Z",
   },

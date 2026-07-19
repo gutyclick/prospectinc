@@ -96,6 +96,8 @@ Durante el prototipo, `searchRepository` mantiene una colección mutable únicam
 
 `prospectRepository` aplica el mismo patrón en memoria para el alta manual de prospectos. La página de Prospectos recibe su colección inicial desde el repositorio, mantiene las altas de la sesión en estado local y centraliza en el dominio el filtrado, orden y eliminación visual de duplicados. Los filtros navegables se serializan en la URL y la exportación CSV se genera exclusivamente en el navegador a partir de la vista filtrada; ninguna de estas operaciones representa persistencia ni una integración externa.
 
+`proposalRepository` permite crear borradores y cambiar estados dentro de la sesión. El modelo de propuesta conserva servicio, precio, moneda, plazo, resumen, elementos incluidos, ángulo recomendado y llamado a la acción. La generación de contenido de la primera fase es una función local determinística basada en el prospecto y la plantilla; no invoca OpenAI ni servicios externos. La acción de envío solo marca una propuesta como lista después de una confirmación explícita y nunca transmite mensajes.
+
 ## Estado y obtención de datos
 
 - Preferir parámetros de ruta y búsqueda para estado navegable.

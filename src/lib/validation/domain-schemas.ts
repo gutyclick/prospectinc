@@ -139,6 +139,8 @@ export const proposalSchema = z
     summary: z.string().min(2),
     includedItems: z.array(z.string().min(2)).min(1),
     recommendedAngle: z.string().min(2),
+    deliveryTime: z.string().min(2),
+    callToAction: z.string().min(2),
     createdAt: isoDateSchema,
     updatedAt: isoDateSchema,
   })

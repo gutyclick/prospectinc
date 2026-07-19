@@ -25,3 +25,10 @@ export {
   type ProspectFormInput,
   type ProspectFormValues,
 } from "./prospect-form-schema";
+export {
+  proposalFormSchema,
+  proposalTemplateSchema,
+  type ProposalFormInput,
+  type ProposalFormValues,
+  type ProposalTemplate,
+} from "./proposal-form-schema";
