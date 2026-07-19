@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { RecentActivity } from "@/components/dashboard/recent-activity";
-import { completeSearchAction, createSearchAction } from "@/app/actions/data";
+import { discoverBusinessesAction } from "@/app/actions/data";
 import { PageHeader } from "@/components/layout/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import type { Activity, Search as SearchRecord } from "@/lib/domain";
@@ -15,7 +15,7 @@ import { PanamaOpportunityMap } from "./panama-opportunity-map";
 import { SearchConfigurationForm } from "./search-configuration-form";
 import { SearchHistoryTable } from "./search-history-table";
 import { SearchMetrics } from "./search-metrics";
-import { SearchProgress, SEARCH_STAGES } from "./search-progress";
+import { SearchProgress } from "./search-progress";
 import { SearchSuggestions } from "./search-suggestions";
 import { SmartFilters, type SearchFilter } from "./smart-filters";
 
@@ -24,12 +24,6 @@ type SearchesViewProps = {
   initialActivities: Activity[];
   stageDelayMs?: number;
 };
-
-function delay(milliseconds: number) {
-  return new Promise<void>((resolve) => {
-    window.setTimeout(resolve, milliseconds);
-  });
-}
 
 export function filterSearches(searches: SearchRecord[], filter: SearchFilter) {
   if (filter === "completadas") {
@@ -55,36 +49,51 @@ export function SearchesView({
   const [activeStage, setActiveStage] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+  const [repeatedInput, setRepeatedInput] = useState<SearchFormValues | null>(
+    null,
+  );
+  const [latestCompletedSearchId, setLatestCompletedSearchId] = useState<
+    string | null
+  >(null);
 
   const filteredSearches = useMemo(
     () => filterSearches(searches, activeFilter),
     [activeFilter, searches],
   );
 
-  async function startSearch(values: SearchFormValues) {
+  async function startSearch(
+    values: SearchFormValues,
+    confirmRepeated = false,
+  ) {
     setNotification(null);
+    setRepeatedInput(null);
     setIsProcessing(true);
     setActiveStage(0);
+    const progressTimer = window.setInterval(() => {
+      setActiveStage((current) => Math.min(current + 1, 2));
+    }, stageDelayMs);
 
     try {
-      const createResult = await createSearchAction(values);
-      if (!createResult.ok) throw new Error(createResult.error);
-      const created = createResult.data;
-      setSearches((current) => [created, ...current]);
-
-      for (let stage = 0; stage < SEARCH_STAGES.length; stage += 1) {
-        setActiveStage(stage);
-        await delay(stageDelayMs);
+      const result = await discoverBusinessesAction({
+        ...values,
+        confirmRepeated,
+      });
+      if (!result.ok) {
+        if (result.requiresConfirmation) setRepeatedInput(values);
+        throw new Error(result.error);
       }
-
-      const completeResult = await completeSearchAction(created.id);
-      if (!completeResult.ok) throw new Error(completeResult.error);
-      const completed = completeResult.data;
-      setSearches((current) =>
-        current.map((search) =>
-          search.id === completed.id ? completed : search,
-        ),
-      );
+      setActiveStage(3);
+      const {
+        search: completed,
+        inserted,
+        deduplicated,
+        providerCalls,
+      } = result.data;
+      setSearches((current) => [
+        completed,
+        ...current.filter((item) => item.id !== completed.id),
+      ]);
+      setLatestCompletedSearchId(completed.id);
       setActivities((current) => [
         {
           id: `activity-${completed.id}`,
@@ -95,7 +104,7 @@ export function SearchesView({
         ...current,
       ]);
       setNotification(
-        `Análisis completado: ${completed.resultsCount} negocios y ${completed.opportunitiesCount} oportunidades detectadas.`,
+        `Búsqueda completada: ${inserted} negocios nuevos, ${deduplicated} deduplicados y ${providerCalls} operación de proveedor.`,
       );
     } catch (error) {
       setNotification(
@@ -104,6 +113,7 @@ export function SearchesView({
           : "No se pudo iniciar la búsqueda. Intenta nuevamente.",
       );
     } finally {
+      window.clearInterval(progressTimer);
       setIsProcessing(false);
     }
   }
@@ -126,7 +136,7 @@ export function SearchesView({
 
       <SectionCard
         title="Crear nueva búsqueda"
-        description="Configura una búsqueda persistente. El descubrimiento externo se conectará en la siguiente fase."
+        description="Consulta negocios reales mediante Google Places API (New), sin scraping."
         className="scroll-mt-24"
         contentClassName="p-5"
       >
@@ -140,12 +150,34 @@ export function SearchesView({
       </SectionCard>
 
       {notification ? (
-        <div
-          role="status"
-          aria-live="polite"
-          className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
-        >
-          {notification}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+          <span role="status" aria-live="polite">
+            {notification}
+          </span>
+          {latestCompletedSearchId ? (
+            <Link
+              href={`/prospectos?searchId=${latestCompletedSearchId}`}
+              className="min-h-10 rounded-lg bg-emerald-700 px-4 py-2.5 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+            >
+              Abrir prospectos encontrados
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+
+      {repeatedInput ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <span>
+            La búsqueda coincide con otra realizada durante las últimas 24
+            horas.
+          </span>
+          <button
+            type="button"
+            onClick={() => startSearch(repeatedInput, true)}
+            className="min-h-10 rounded-lg bg-amber-700 px-4 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700"
+          >
+            Repetir búsqueda
+          </button>
         </div>
       ) : null}
 

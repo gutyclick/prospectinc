@@ -30,6 +30,7 @@ export const commercialStatusSchema = z.enum([
 export const prospectSchema = z
   .object({
     id: entityIdSchema,
+    searchId: entityIdSchema.nullable().optional(),
     businessName: z.string().min(2),
     niche: z.string().min(2),
     location: z.string().min(2),
@@ -87,6 +88,7 @@ export const searchStatusSchema = z.enum([
   "borrador",
   "analizando",
   "completada",
+  "fallida",
 ]);
 
 export const searchSchema = z
@@ -94,11 +96,16 @@ export const searchSchema = z
     id: entityIdSchema,
     query: z.string().min(2),
     location: z.string().min(2),
+    country: z.string().nullable().optional(),
     resultLimit: z.number().int().positive().max(500),
     sources: z.array(searchSourceSchema).min(1),
     status: searchStatusSchema,
     resultsCount: z.number().int().nonnegative(),
     opportunitiesCount: z.number().int().nonnegative(),
+    insertedCount: z.number().int().nonnegative().optional().default(0),
+    deduplicatedCount: z.number().int().nonnegative().optional().default(0),
+    providerCallCount: z.number().int().nonnegative().optional().default(0),
+    errorMessage: z.string().nullable().optional(),
     createdAt: isoDateSchema,
   })
   .superRefine((search, context) => {

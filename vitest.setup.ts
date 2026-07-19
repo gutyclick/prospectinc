@@ -18,6 +18,28 @@ vi.mock("@/app/actions/data", async () => {
       ok: true,
       data: await repositories.searchRepository.completeSearch(id),
     }),
+    discoverBusinessesAction: async (
+      values: Parameters<typeof repositories.searchRepository.createSearch>[0],
+    ) => {
+      await new Promise((resolve) => setTimeout(resolve, 75));
+      const created = await repositories.searchRepository.createSearch(values);
+      const search = await repositories.searchRepository.completeSearch(
+        created.id,
+      );
+      return {
+        ok: true,
+        data: {
+          search: {
+            ...search,
+            insertedCount: search.resultsCount,
+            providerCallCount: 1,
+          },
+          inserted: search.resultsCount,
+          deduplicated: 0,
+          providerCalls: 1,
+        },
+      };
+    },
     createProspectAction: async (
       values: Parameters<
         typeof repositories.prospectRepository.createProspect

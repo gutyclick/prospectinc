@@ -30,7 +30,7 @@ async function completeForm(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Iniciar análisis" }));
 }
 
-describe("flujo de búsquedas simuladas", () => {
+describe("flujo de búsquedas reales", () => {
   beforeEach(() => {
     searchRepository.reset();
   });
@@ -45,14 +45,12 @@ describe("flujo de búsquedas simuladas", () => {
     expect(
       Number(progressbar.getAttribute("aria-valuenow")),
     ).toBeGreaterThanOrEqual(25);
-    expect(screen.getAllByText("Buscando negocios")).not.toHaveLength(0);
-
     await waitFor(() => {
       expect(
         Number(progressbar.getAttribute("aria-valuenow")),
       ).toBeGreaterThanOrEqual(50);
     });
-    expect(await screen.findByText(/Análisis completado:/)).toBeInTheDocument();
+    expect(await screen.findByText(/Búsqueda completada:/)).toBeInTheDocument();
   });
 
   it("actualiza los resultados sin recargar al completar el análisis", async () => {
@@ -61,7 +59,7 @@ describe("flujo de búsquedas simuladas", () => {
 
     await completeForm(user);
 
-    expect(await screen.findByText(/Análisis completado:/)).toBeInTheDocument();
+    expect(await screen.findByText(/Búsqueda completada:/)).toBeInTheDocument();
     expect(screen.getAllByText("Veterinarias")).not.toHaveLength(0);
     expect(
       screen.getByText(/Se completó la búsqueda de Veterinarias/),

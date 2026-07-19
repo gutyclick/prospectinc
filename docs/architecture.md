@@ -161,3 +161,11 @@ Cada integración se implementará como adaptador detrás de una interfaz propia
 ## Evolución de arquitectura
 
 Las decisiones estructurales relevantes se documentarán aquí o mediante registros de decisión si crece su complejidad. Cualquier cambio en límites de módulos, persistencia, integraciones o estrategia de estado exige actualizar esta documentación en el mismo cambio.
+
+## Descubrimiento real con Google Places
+
+`BusinessDiscoveryProvider` delimita el proveedor externo. `GooglePlacesDiscoveryProvider` ejecuta exclusivamente Text Search (New) desde el servidor mediante POST, idioma español, un FieldMask explícito y un máximo de 20 resultados. No solicita fotografías, reseñas completas ni Place Details.
+
+`BusinessDiscoveryService` crea la búsqueda, impide repeticiones idénticas durante 24 horas salvo confirmación, llama una vez al proveedor, normaliza y deduplica por `google_place_id`. La función PostgreSQL `persist_discovery_results` guarda prospectos, teléfonos con fuente, contadores y actividad en una transacción. Los fallos dejan el registro en estado `fallida` con un mensaje saneado.
+
+La telemetría registra únicamente el identificador interno y las cantidades de llamadas y resultados. La clave y el cuerpo completo del proveedor nunca se registran ni llegan al cliente.

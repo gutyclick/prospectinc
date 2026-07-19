@@ -70,8 +70,11 @@ NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<clave publicable mostrada por supabase status>
 APP_OWNER_EMAIL=<correo exacto del usuario creado en Auth>
 DATA_PROVIDER=supabase
+GOOGLE_PLACES_API_KEY=<clave restringida a Places API (New)>
 ```
 
 No uses `SUPABASE_SERVICE_ROLE_KEY` en el navegador. La aplicación valida `APP_OWNER_EMAIL` en Proxy, en las rutas protegidas y durante el inicio de sesión.
+
+`GOOGLE_PLACES_API_KEY` también es exclusivamente de servidor. Restringe esa clave en Google Cloud a Places API (New) y a los entornos autorizados.
 
 Consulta [docs/supabase.md](docs/supabase.md) para preparar el entorno, crear el propietario y vincular un proyecto remoto.

@@ -608,15 +608,20 @@ export type Database = {
       searches: {
         Row: {
           completed_at: string | null;
+          country: string | null;
           created_at: string;
+          deduplicated_count: number;
           error_message: string | null;
           external_run_id: string | null;
           id: string;
+          inserted_count: number;
           location: string;
           opportunities_count: number;
           opportunity_filter: string | null;
           owner_id: string;
+          provider_call_count: number;
           query: string;
+          query_fingerprint: string | null;
           result_limit: number;
           results_count: number;
           sources: string[];
@@ -626,15 +631,20 @@ export type Database = {
         };
         Insert: {
           completed_at?: string | null;
+          country?: string | null;
           created_at?: string;
+          deduplicated_count?: number;
           error_message?: string | null;
           external_run_id?: string | null;
           id?: string;
+          inserted_count?: number;
           location: string;
           opportunities_count?: number;
           opportunity_filter?: string | null;
           owner_id: string;
+          provider_call_count?: number;
           query: string;
+          query_fingerprint?: string | null;
           result_limit: number;
           results_count?: number;
           sources: string[];
@@ -644,15 +654,20 @@ export type Database = {
         };
         Update: {
           completed_at?: string | null;
+          country?: string | null;
           created_at?: string;
+          deduplicated_count?: number;
           error_message?: string | null;
           external_run_id?: string | null;
           id?: string;
+          inserted_count?: number;
           location?: string;
           opportunities_count?: number;
           opportunity_filter?: string | null;
           owner_id?: string;
+          provider_call_count?: number;
           query?: string;
+          query_fingerprint?: string | null;
           result_limit?: number;
           results_count?: number;
           sources?: string[];
@@ -759,6 +774,10 @@ export type Database = {
       mark_response_sent: {
         Args: { conversation_id: string; response_body: string };
         Returns: undefined;
+      };
+      persist_discovery_results: {
+        Args: { discovered: Json; search_record_id: string };
+        Returns: Json;
       };
       transition_conversation: {
         Args: {

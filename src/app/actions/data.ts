@@ -9,6 +9,13 @@ import type {
   ProposalStatus,
 } from "@/lib/domain";
 import { getRepositories, RepositoryError } from "@/lib/repositories";
+import { requireOwner } from "@/lib/auth/require-owner";
+import { createClient } from "@/lib/supabase/server";
+import {
+  BusinessDiscoveryService,
+  RepeatedBusinessSearchError,
+} from "@/lib/services/business-discovery-service";
+import { GooglePlacesDiscoveryProvider } from "@/lib/services/google-places-discovery-provider";
 import {
   proposalFormSchema,
   prospectFormSchema,
@@ -59,6 +66,40 @@ export async function completeSearchAction(id: unknown) {
     revalidatePath("/");
     return search;
   });
+}
+
+export async function discoverBusinessesAction(input: unknown) {
+  try {
+    const values = searchFormSchema
+      .extend({ confirmRepeated: z.boolean().optional().default(false) })
+      .parse(input);
+    const [client, owner] = await Promise.all([createClient(), requireOwner()]);
+    const result = await new BusinessDiscoveryService(
+      client,
+      owner.id,
+      new GooglePlacesDiscoveryProvider(),
+    ).run({
+      niche: values.query,
+      location: values.location,
+      country: values.country,
+      limit: values.resultLimit,
+      sources: ["google-places"],
+      confirmRepeated: values.confirmRepeated,
+    });
+    revalidatePath("/busquedas");
+    revalidatePath("/prospectos");
+    revalidatePath("/");
+    return { ok: true, data: result } as const;
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "No se pudo completar la búsqueda.",
+      requiresConfirmation: error instanceof RepeatedBusinessSearchError,
+    } as const;
+  }
 }
 
 export async function createProspectAction(input: unknown) {

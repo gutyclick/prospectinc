@@ -78,4 +78,8 @@ Cada paso conserva el adaptador simulado hasta superar pruebas de contrato, inte
 - No generación o inferencia de datos de contacto.
 - No exposición de SDK privilegiados o secretos al navegador.
 
-Supabase es la única integración activa: existen clientes SSR, autenticación, esquema, adaptadores y acciones de servidor. Las pantallas internas leen y modifican PostgreSQL; los datos simulados quedan reservados para pruebas. No se conectaron Google Places, Trigger.dev, OpenAI, Gmail ni WhatsApp.
+Supabase y Google Places API (New) son las integraciones activas. Las pantallas internas leen y modifican PostgreSQL; los datos simulados quedan reservados para pruebas.
+
+## Estado de Google Places
+
+Google Places API (New) está activa exclusivamente mediante Text Search. Utiliza clave de servidor, FieldMask limitado, timeout y reintentos acotados para 429 y 5xx. No se usa scraping, Place Details, fotografías ni reseñas completas. Trigger.dev, Playwright, OpenAI, Gmail y WhatsApp permanecen sin integrar.

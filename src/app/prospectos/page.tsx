@@ -18,10 +18,14 @@ export default async function ProspectosPage({
   for (const [key, value] of Object.entries(resolvedSearchParams)) {
     if (typeof value === "string") params.set(key, value);
   }
+  const searchId = params.get("searchId");
+  const visibleProspects = searchId
+    ? prospects.filter((prospect) => prospect.searchId === searchId)
+    : prospects;
 
   return (
     <ProspectsView
-      initialProspects={prospects}
+      initialProspects={visibleProspects}
       initialFilters={prospectFiltersFromSearchParams(params)}
     />
   );

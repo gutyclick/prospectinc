@@ -30,11 +30,13 @@ describe("formulario de búsqueda", () => {
     );
     await user.type(screen.getByLabelText("Ubicación"), "Ciudad de Panamá");
     await user.clear(screen.getByLabelText("Cantidad de resultados"));
-    await user.type(screen.getByLabelText("Cantidad de resultados"), "101");
+    await user.type(screen.getByLabelText("Cantidad de resultados"), "21");
     await user.click(screen.getByRole("button", { name: "Iniciar análisis" }));
 
     expect(
-      await screen.findByText("El prototipo admite hasta 100 resultados."),
+      await screen.findByText(
+        "Google Places admite hasta 20 resultados por búsqueda.",
+      ),
     ).toBeInTheDocument();
     expect(onStart).not.toHaveBeenCalled();
   });

@@ -16,7 +16,7 @@ export function SearchHistoryTable({ searches }: SearchHistoryTableProps) {
     return (
       <EmptyState
         title="No hay resultados para este filtro"
-        description="Prueba otro filtro o configura una nueva búsqueda simulada."
+        description="Prueba otro filtro o configura una nueva búsqueda real."
         icon={Search}
       />
     );
@@ -25,7 +25,9 @@ export function SearchHistoryTable({ searches }: SearchHistoryTableProps) {
   return (
     <DataTableShell title="Resultados recientes" minimumWidth="48rem">
       <table className="w-full border-collapse text-left text-sm">
-        <caption className="sr-only">Historial de búsquedas simuladas</caption>
+        <caption className="sr-only">
+          Historial de búsquedas con Google Places
+        </caption>
         <thead className="bg-slate-50/80 text-xs font-semibold text-slate-500">
           <tr>
             {[
@@ -34,6 +36,8 @@ export function SearchHistoryTable({ searches }: SearchHistoryTableProps) {
               "Fecha",
               "Resultados",
               "Oportunidades",
+              "Nuevos / deduplicados",
+              "Operaciones",
               "Estado",
             ].map((heading) => (
               <th key={heading} scope="col" className="px-4 py-3">
@@ -62,21 +66,34 @@ export function SearchHistoryTable({ searches }: SearchHistoryTableProps) {
                 {search.opportunitiesCount}
               </td>
               <td className="px-4 py-3">
+                {search.insertedCount} / {search.deduplicatedCount}
+              </td>
+              <td className="px-4 py-3">{search.providerCallCount}</td>
+              <td className="px-4 py-3">
                 <StatusBadge
                   tone={
                     search.status === "completada"
                       ? "green"
                       : search.status === "analizando"
                         ? "orange"
-                        : "neutral"
+                        : search.status === "fallida"
+                          ? "red"
+                          : "neutral"
                   }
                 >
                   {search.status === "completada"
                     ? "Completada"
                     : search.status === "analizando"
                       ? "Analizando"
-                      : "Borrador"}
+                      : search.status === "fallida"
+                        ? "Fallida"
+                        : "Borrador"}
                 </StatusBadge>
+                {search.errorMessage ? (
+                  <p className="mt-1 max-w-56 text-xs text-red-700">
+                    {search.errorMessage}
+                  </p>
+                ) : null}
               </td>
             </tr>
           ))}

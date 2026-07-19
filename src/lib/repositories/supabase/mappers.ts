@@ -22,14 +22,16 @@ export function mapSearch(row: Row<"searches">): Search {
     id: row.id,
     query: row.query,
     location: row.location,
+    country: row.country,
     resultLimit: row.result_limit,
     sources: row.sources,
-    status:
-      row.status === "fallida" || row.status === "pendiente"
-        ? "analizando"
-        : row.status,
+    status: row.status === "pendiente" ? "analizando" : row.status,
     resultsCount: row.results_count,
     opportunitiesCount: row.opportunities_count,
+    insertedCount: row.inserted_count,
+    deduplicatedCount: row.deduplicated_count,
+    providerCallCount: row.provider_call_count,
+    errorMessage: row.error_message,
     createdAt: row.created_at,
   });
 }
@@ -47,6 +49,7 @@ export function mapProspect(
     email?.source_url ?? phone?.source_url ?? whatsapp?.source_url ?? null;
   return prospectSchema.parse({
     id: row.id,
+    searchId: row.search_id,
     businessName: row.business_name,
     niche: row.niche,
     location:
