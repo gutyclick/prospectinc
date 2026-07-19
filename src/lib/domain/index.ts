@@ -11,8 +11,10 @@ export type {
   Proposal,
   ProposalStatus,
   Prospect,
+  ProspectingFunnel,
   Search,
   SearchSource,
   SearchStatus,
+  TodayRecommendation,
   WebsiteStatus,
 } from "./models";

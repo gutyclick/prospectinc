@@ -48,3 +48,16 @@ export type DashboardMetrics = {
   completedSearches: number;
   averageOpportunityScore: number;
 };
+
+export type ProspectingFunnel = {
+  found: number;
+  qualified: number;
+  proposals: number;
+  contacted: number;
+  responded: number;
+};
+
+export type TodayRecommendation = {
+  id: string;
+  description: string;
+};

@@ -1,4 +1,8 @@
-import type { DashboardMetrics } from "@/lib/domain";
+import type {
+  DashboardMetrics,
+  ProspectingFunnel,
+  TodayRecommendation,
+} from "@/lib/domain";
 
 import { conversationRepository } from "./conversation-repository";
 import { proposalRepository } from "./proposal-repository";
@@ -36,4 +40,72 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     averageOpportunityScore:
       prospects.length === 0 ? 0 : Math.round(totalScore / prospects.length),
   };
+}
+
+export async function getProspectingFunnel(): Promise<ProspectingFunnel> {
+  const [prospects, proposals, conversations] = await Promise.all([
+    prospectRepository.getAll(),
+    proposalRepository.getAll(),
+    conversationRepository.getAll(),
+  ]);
+  const qualifiedStatuses = new Set([
+    "calificado",
+    "alta-prioridad",
+    "propuesta-lista",
+    "contactado",
+    "respondio",
+    "seguimiento",
+    "negociacion",
+    "ganado",
+  ]);
+
+  return {
+    found: prospects.length,
+    qualified: prospects.filter((prospect) =>
+      qualifiedStatuses.has(prospect.commercialStatus),
+    ).length,
+    proposals: proposals.length,
+    contacted: conversations.filter((conversation) =>
+      conversation.messages.some((message) => message.direction === "saliente"),
+    ).length,
+    responded: conversations.filter((conversation) =>
+      conversation.messages.some((message) => message.direction === "entrante"),
+    ).length,
+  };
+}
+
+export async function getTodayRecommendations(): Promise<
+  TodayRecommendation[]
+> {
+  const [prospects, proposals, conversations] = await Promise.all([
+    prospectRepository.getAll(),
+    proposalRepository.getAll(),
+    conversationRepository.getAll(),
+  ]);
+  const highScoreProspects = prospects.filter(
+    (prospect) => prospect.opportunityScore >= 85,
+  ).length;
+  const proposalsToReview = proposals.filter((proposal) =>
+    ["borrador", "lista"].includes(proposal.status),
+  ).length;
+  const pendingResponses = conversations.filter(
+    (conversation) =>
+      ["respondio", "seguimiento"].includes(conversation.status) &&
+      conversation.nextAction,
+  ).length;
+
+  return [
+    {
+      id: "high-score-prospects",
+      description: `Prioriza ${highScoreProspects} prospectos con puntaje de 85 o más.`,
+    },
+    {
+      id: "proposals-to-review",
+      description: `Revisa ${proposalsToReview} propuestas pendientes antes de contactar.`,
+    },
+    {
+      id: "pending-responses",
+      description: `Da seguimiento a ${pendingResponses} conversaciones con una próxima acción.`,
+    },
+  ];
 }

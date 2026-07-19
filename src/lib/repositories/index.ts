@@ -6,7 +6,11 @@ export {
   conversationRepository,
   type ConversationRepository,
 } from "./conversation-repository";
-export { getDashboardMetrics } from "./dashboard-metrics";
+export {
+  getDashboardMetrics,
+  getProspectingFunnel,
+  getTodayRecommendations,
+} from "./dashboard-metrics";
 export {
   proposalRepository,
   type ProposalRepository,
