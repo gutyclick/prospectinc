@@ -1,4 +1,5 @@
 import { ProposalsView } from "@/components/proposals/proposals-view";
+import { requireOwner } from "@/lib/auth/require-owner";
 import { proposalRepository, prospectRepository } from "@/lib/repositories";
 
 export default async function PropuestasPage({
@@ -6,6 +7,7 @@ export default async function PropuestasPage({
 }: {
   searchParams: Promise<{ prospectId?: string }>;
 }) {
+  await requireOwner();
   const [proposals, prospects, params] = await Promise.all([
     proposalRepository.getAll(),
     prospectRepository.getAll(),

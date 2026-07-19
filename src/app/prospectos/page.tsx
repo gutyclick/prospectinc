@@ -1,4 +1,5 @@
 import { ProspectsView } from "@/components/prospects/prospects-view";
+import { requireOwner } from "@/lib/auth/require-owner";
 import { prospectFiltersFromSearchParams } from "@/lib/domain/prospect-filters";
 import { prospectRepository } from "@/lib/repositories";
 
@@ -9,6 +10,7 @@ type ProspectosPageProps = {
 export default async function ProspectosPage({
   searchParams,
 }: ProspectosPageProps) {
+  await requireOwner();
   const [prospects, resolvedSearchParams] = await Promise.all([
     prospectRepository.getAll(),
     searchParams,

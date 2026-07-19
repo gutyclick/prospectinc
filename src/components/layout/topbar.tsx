@@ -1,6 +1,15 @@
 "use client";
 
-import { Bell, ChevronDown, Menu, Search, UserRound } from "lucide-react";
+import {
+  Bell,
+  ChevronDown,
+  LogOut,
+  Menu,
+  Search,
+  UserRound,
+} from "lucide-react";
+
+import { logoutAction } from "@/app/actions/auth";
 
 type TopbarProps = {
   onOpenMobile: () => void;
@@ -76,6 +85,15 @@ export function Topbar({ onOpenMobile }: TopbarProps) {
               <UserRound className="size-4" aria-hidden="true" />
               Ver perfil
             </button>
+            <form action={logoutAction}>
+              <button
+                type="submit"
+                className="mt-1 flex min-h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-sm text-slate-600 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600"
+              >
+                <LogOut className="size-4" aria-hidden="true" />
+                Cerrar sesión
+              </button>
+            </form>
           </div>
         </details>
       </div>

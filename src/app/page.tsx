@@ -1,4 +1,5 @@
 import { DashboardView } from "@/components/dashboard/dashboard-view";
+import { requireOwner } from "@/lib/auth/require-owner";
 import {
   activityRepository,
   getDashboardMetrics,
@@ -8,6 +9,7 @@ import {
 } from "@/lib/repositories";
 
 export default async function HomePage() {
+  await requireOwner();
   const [metrics, prospects, activities, funnel, recommendations] =
     await Promise.all([
       getDashboardMetrics(),

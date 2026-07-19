@@ -2,7 +2,7 @@
 
 ## Alcance
 
-Estas reglas gobiernan la futura incorporación de persistencia, autenticación, descubrimiento, IA y mensajería. Actualmente la aplicación usa exclusivamente datos simulados.
+Estas reglas gobiernan la persistencia, autenticación y futura incorporación de descubrimiento, IA y mensajería. Supabase Auth y el esquema versionado ya están incorporados; los módulos funcionales continúan usando repositorios simulados.
 
 ## Clasificación de configuración
 

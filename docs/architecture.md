@@ -27,7 +27,7 @@ Contratos de repositorio
 Adaptadores simulados (Fase 1)
 ```
 
-En fases posteriores, los adaptadores simulados podrán reemplazarse por Supabase y servicios externos sin reescribir la lógica visual ni el dominio.
+La Fase 2 incorpora Supabase Auth, migraciones PostgreSQL y clientes SSR, pero conserva los adaptadores simulados. Los repositorios se reemplazarán gradualmente sin reescribir la lógica visual ni el dominio.
 
 ## Organización prevista
 
@@ -110,7 +110,7 @@ La Bandeja combina conversaciones, prospectos y propuestas mediante sus reposito
 
 ## Integraciones futuras
 
-- **Supabase/PostgreSQL:** persistencia, consultas y eventualmente autenticación, únicamente en su fase.
+- **Supabase/PostgreSQL:** el esquema, RLS y la autenticación ya están versionados. Los repositorios reales todavía no sustituyen a los simulados.
 - **Motor de descubrimiento:** proveedores permitidos y trazables; queda prohibido el scraping de Google Maps.
 - **Analizador de páginas:** navegación controlada con Playwright y tareas con Trigger.dev cuando corresponda.
 - **OpenAI API:** asistencia para análisis y redacción con salidas revisables, nunca como fuente de contactos.
@@ -118,6 +118,17 @@ La Bandeja combina conversaciones, prospectos y propuestas mediante sus reposito
 - **WhatsApp:** enlaces click-to-chat; el usuario enviará manualmente.
 
 Cada integración se implementará como adaptador detrás de una interfaz propia, con configuración y errores aislados del dominio.
+
+## Autenticación y persistencia de la Fase 2
+
+- `src/proxy.ts` usa el convenio Proxy de Next.js 16 para renovar cookies mediante `@supabase/ssr` y `getClaims()`.
+- `src/lib/supabase/server.ts` crea un cliente por solicitud; no conserva sesiones en estado global.
+- `src/lib/auth/require-owner.ts` vuelve a validar el usuario con Auth en cada ruta interna y compara su correo normalizado con `APP_OWNER_EMAIL`.
+- `/login`, `/auth/confirm` y `/actualizar-contrasena` forman la superficie pública mínima de autenticación.
+- Las mutaciones de autenticación son Server Actions. La interfaz nunca recibe credenciales de servicio.
+- Las respuestas autenticadas usan `private, no-store`; no se habilita ISR en rutas con sesión.
+- `supabase/migrations` es la fuente de verdad del esquema y `src/types/database.types.ts` refleja sus tipos.
+- Todas las tablas comerciales tienen RLS. Las relaciones compuestas impiden vincular registros de propietarios distintos.
 
 ## Seguridad y privacidad
 

@@ -125,6 +125,6 @@ La separación es suficiente para iniciar la migración, pero no está completa 
 - `src/app/configuracion/*`: conexión y revocación de integraciones.
 - Pruebas de repositorios, acciones, políticas, trabajos y flujos E2E.
 
-## Fuera de este cambio
+## Estado tras la incorporación de Supabase
 
-No se implementan Supabase, autenticación, Google Places, Trigger.dev, OpenAI, Gmail, WhatsApp ni ningún otro servicio externo. Los repositorios simulados permanecen activos.
+Supabase Auth, el esquema PostgreSQL, RLS, migraciones y utilidades SSR están implementados. Los repositorios simulados permanecen activos y todavía no se conectan Google Places, Trigger.dev, OpenAI, Gmail ni WhatsApp.

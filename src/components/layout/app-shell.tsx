@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
@@ -10,8 +11,17 @@ type AppShellProps = {
 };
 
 export function AppShell({ children }: AppShellProps) {
+  const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  if (
+    pathname === "/login" ||
+    pathname.startsWith("/auth/") ||
+    pathname === "/actualizar-contrasena"
+  ) {
+    return children;
+  }
 
   return (
     <div className="min-h-screen overflow-x-clip bg-[var(--app-background)]">

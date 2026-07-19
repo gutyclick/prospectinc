@@ -2,7 +2,7 @@
 
 ## Principio de integración
 
-Toda integración se implementa como un adaptador reemplazable detrás de una interfaz controlada por la aplicación. Los tipos del SDK no atraviesan esa frontera y los componentes no conocen proveedores. Este documento define el destino; ningún servicio está conectado todavía.
+Toda integración se implementa como un adaptador reemplazable detrás de una interfaz controlada por la aplicación. Los tipos del SDK no atraviesan esa frontera y los componentes no conocen proveedores. Supabase Auth y su infraestructura SSR ya están conectados; los repositorios Supabase y los demás proveedores siguen pendientes.
 
 ## Catálogo previsto
 
@@ -78,4 +78,4 @@ Cada paso conserva el adaptador simulado hasta superar pruebas de contrato, inte
 - No generación o inferencia de datos de contacto.
 - No exposición de SDK privilegiados o secretos al navegador.
 
-En esta auditoría no se instalaron dependencias, no se crearon clientes y no se realizaron solicitudes externas.
+Supabase es la única integración iniciada: existen clientes SSR, autenticación y esquema, pero las pantallas conservan los datos simulados. No se conectaron Google Places, Trigger.dev, OpenAI, Gmail ni WhatsApp.
