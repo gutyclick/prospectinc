@@ -94,6 +94,8 @@ La capa actual expone `prospectRepository`, `searchRepository`, `proposalReposit
 
 Durante el prototipo, `searchRepository` mantiene una colección mutable únicamente en memoria para demostrar la creación y finalización de búsquedas sin recargar la página. El estado vuelve a los fixtures al reiniciar la aplicación y no representa persistencia real. El formulario conserva preferencias transitorias —canal y nivel de oportunidad— fuera del registro `Search` hasta que el modelo de persistencia las requiera.
 
+`prospectRepository` aplica el mismo patrón en memoria para el alta manual de prospectos. La página de Prospectos recibe su colección inicial desde el repositorio, mantiene las altas de la sesión en estado local y centraliza en el dominio el filtrado, orden y eliminación visual de duplicados. Los filtros navegables se serializan en la URL y la exportación CSV se genera exclusivamente en el navegador a partir de la vista filtrada; ninguna de estas operaciones representa persistencia ni una integración externa.
+
 ## Estado y obtención de datos
 
 - Preferir parámetros de ruta y búsqueda para estado navegable.

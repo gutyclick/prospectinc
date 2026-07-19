@@ -20,3 +20,8 @@ export {
   searchFormSchema,
   type SearchFormValues,
 } from "./search-form-schema";
+export {
+  prospectFormSchema,
+  type ProspectFormInput,
+  type ProspectFormValues,
+} from "./prospect-form-schema";
