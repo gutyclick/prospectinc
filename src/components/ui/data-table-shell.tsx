@@ -22,7 +22,7 @@ export function DataTableShell({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-white shadow-[var(--shadow-card)]",
+        "max-w-full min-w-0 overflow-hidden rounded-[var(--radius-card)] border border-[var(--border-subtle)] bg-white shadow-[var(--shadow-card)]",
         className,
       )}
     >

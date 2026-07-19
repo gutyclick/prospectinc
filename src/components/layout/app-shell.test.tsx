@@ -47,5 +47,19 @@ describe("AppShell", () => {
         item.href,
       );
     }
+    expect(navigationItems.map((item) => item.label)).toEqual([
+      "Inicio",
+      "Búsquedas",
+      "Prospectos",
+      "Propuestas",
+      "Bandeja",
+      "Configuración",
+    ]);
+    expect(
+      screen.queryByRole("link", { name: "Contactados" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Respuestas" }),
+    ).not.toBeInTheDocument();
   });
 });

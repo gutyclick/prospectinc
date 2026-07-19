@@ -26,6 +26,8 @@ describe("filtros de bandeja", () => {
       enviados: 1,
       respondieron: 1,
       seguimiento: 1,
+      negociacion: 1,
+      ganados: 1,
     });
   });
 });

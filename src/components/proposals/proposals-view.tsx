@@ -1,7 +1,7 @@
 "use client";
 
 import { LayoutTemplate, Plus, Send, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { ProposalFormModal } from "@/components/proposals/proposal-form-modal";
@@ -33,12 +33,46 @@ export function ProposalsView({
   prospects: Prospect[];
   initialProspectId?: string;
 }) {
+  const confirmationRef = useRef<HTMLElement>(null);
+  const confirmationCloseRef = useRef<HTMLButtonElement>(null);
   const [proposals, setProposals] = useState(initialProposals);
   const [filters, setFilters] = useState(initialFilters);
   const [selectedId, setSelectedId] = useState(initialProposals[0]?.id ?? null);
   const [formOpen, setFormOpen] = useState(Boolean(initialProspectId));
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    if (!confirmOpen) return;
+    const previousElement =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    confirmationCloseRef.current?.focus();
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setConfirmOpen(false);
+      if (event.key === "Tab") {
+        const focusable =
+          confirmationRef.current?.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          );
+        const first = focusable?.item(0);
+        const last = focusable?.item((focusable?.length ?? 1) - 1);
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previousElement?.focus();
+    };
+  }, [confirmOpen]);
   const visible = useMemo(
     () => filterProposals(proposals, prospects, filters),
     [filters, proposals, prospects],
@@ -88,12 +122,12 @@ export function ProposalsView({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-5">
       <PageHeader
         title="Propuestas"
         description="Crea, personaliza y prepara propuestas comerciales con contenido simulado."
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setFormOpen(true)}>
               <LayoutTemplate className="size-4" /> Plantillas
             </Button>
@@ -141,6 +175,7 @@ export function ProposalsView({
       {confirmOpen ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
           <section
+            ref={confirmationRef}
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="confirm-title"
@@ -151,6 +186,7 @@ export function ProposalsView({
                 <Send className="size-5" />
               </span>
               <button
+                ref={confirmationCloseRef}
                 type="button"
                 onClick={() => setConfirmOpen(false)}
                 aria-label="Cerrar confirmación"

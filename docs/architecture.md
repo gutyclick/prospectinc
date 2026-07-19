@@ -134,6 +134,7 @@ Cada integración se implementará como adaptador detrás de una interfaz propia
 - Usar carga progresiva y límites claros para listas grandes.
 - Evitar solicitudes duplicadas y optimizaciones prematuras.
 - Considerar accesibilidad como requisito funcional: semántica, teclado, foco, contraste, anuncios de cambios y reducción de movimiento.
+- Mantener límites de error y páginas de estado localizadas en el App Router; los errores recuperables deben ofrecer una acción de reintento.
 
 ## Evolución de arquitectura
 

@@ -1,4 +1,17 @@
-import type { CommercialStatus, Prospect, WebsiteStatus } from "./models";
+import type {
+  CommercialStatus,
+  ConversationStatus,
+  Prospect,
+  WebsiteStatus,
+} from "./models";
+
+export const conversationStatusLabels: Record<ConversationStatus, string> = {
+  "sin-contactar": "Por contactar",
+  "esperando-respuesta": "Enviado",
+  respondio: "Respondió",
+  seguimiento: "Seguimiento",
+  cerrada: "Cerrada",
+};
 
 export type ContactChannel =
   "whatsapp" | "correo" | "telefono" | "sin-contacto";

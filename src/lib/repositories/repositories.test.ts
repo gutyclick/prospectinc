@@ -82,6 +82,36 @@ describe("relaciones del dominio", () => {
     expect(proposals).toHaveLength(1);
     expect(proposals[0]?.service).toBe("Sitio web + citas");
   });
+
+  it("mantiene contactos públicos y estados relacionados coherentes", async () => {
+    const [prospects, proposals, conversations] = await Promise.all([
+      prospectRepository.getAll(),
+      proposalRepository.getAll(),
+      conversationRepository.getAll(),
+    ]);
+
+    for (const prospect of prospects) {
+      const hasContact = Boolean(
+        prospect.publicEmail || prospect.publicPhone || prospect.publicWhatsapp,
+      );
+      if (hasContact) expect(prospect.contactSourceUrl).not.toBeNull();
+    }
+    for (const conversation of conversations) {
+      expect(
+        prospects.some((prospect) => prospect.id === conversation.prospectId),
+      ).toBe(true);
+    }
+
+    for (const proposal of proposals) {
+      const prospect = prospects.find(
+        (item) => item.id === proposal.prospectId,
+      );
+      if (proposal.status === "aceptada")
+        expect(prospect?.commercialStatus).toBe("ganado");
+      if (proposal.status === "negociacion")
+        expect(prospect?.commercialStatus).toBe("negociacion");
+    }
+  });
 });
 
 describe("métricas del dashboard", () => {

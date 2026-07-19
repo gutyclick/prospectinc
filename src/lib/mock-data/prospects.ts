@@ -89,7 +89,7 @@ export const mockProspects = z.array(prospectSchema).parse([
     publicWhatsapp: null,
     contactSourceUrl: "https://abogadosrivera.example/contacto",
     opportunityScore: 79,
-    commercialStatus: "calificado",
+    commercialStatus: "negociacion",
     recommendedOffer:
       "Sitio corporativo por áreas de práctica y formulario de consulta",
     aiSummary:
@@ -114,7 +114,7 @@ export const mockProspects = z.array(prospectSchema).parse([
     publicWhatsapp: "+506 6000-0105",
     contactSourceUrl: "https://spaaura.example/reservas",
     opportunityScore: 76,
-    commercialStatus: "seguimiento",
+    commercialStatus: "ganado",
     recommendedOffer: "Rediseño orientado a reservas y paquetes de bienestar",
     aiSummary:
       "Spa ficticio con un sitio básico que describe servicios, pero no permite consultar disponibilidad ni reservar en línea.",

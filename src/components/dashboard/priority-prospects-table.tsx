@@ -6,32 +6,14 @@ import { useEffect, useRef, useState } from "react";
 import { DataTableShell } from "@/components/ui/data-table-shell";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
-import type { CommercialStatus, Prospect, WebsiteStatus } from "@/lib/domain";
+import type { Prospect } from "@/lib/domain";
+import {
+  commercialStatusLabels,
+  websiteStatusLabels,
+} from "@/lib/domain/prospect-presentation";
 
 type PriorityProspectsTableProps = {
   prospects: Prospect[];
-};
-
-const websiteStatusLabels: Record<WebsiteStatus, string> = {
-  "sin-sitio": "Sin sitio",
-  desactualizado: "Desactualizado",
-  "solo-redes": "Solo redes",
-  basico: "Sitio básico",
-  optimizado: "Optimizado",
-};
-
-const commercialStatusLabels: Record<CommercialStatus, string> = {
-  nuevo: "Nuevo",
-  analizando: "Analizando",
-  calificado: "Calificado",
-  "alta-prioridad": "Alta prioridad",
-  "propuesta-lista": "Propuesta lista",
-  contactado: "Contactado",
-  respondio: "Respondió",
-  seguimiento: "Seguimiento",
-  negociacion: "Negociación",
-  ganado: "Ganado",
-  descartado: "Descartado",
 };
 
 function getContact(prospect: Prospect) {

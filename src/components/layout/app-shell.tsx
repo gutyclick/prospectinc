@@ -14,7 +14,7 @@ export function AppShell({ children }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[var(--app-background)]">
+    <div className="min-h-screen overflow-x-clip bg-[var(--app-background)]">
       <a
         href="#contenido-principal"
         className="fixed top-3 left-3 z-[70] -translate-y-20 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition-transform focus:translate-y-0"
@@ -28,16 +28,18 @@ export function AppShell({ children }: AppShellProps) {
         onToggle={() => setCollapsed((current) => !current)}
       />
       <div
-        className={`min-h-screen transition-[padding] duration-200 motion-reduce:transition-none ${
+        className={`min-h-screen min-w-0 transition-[padding] duration-200 motion-reduce:transition-none ${
           collapsed ? "lg:pl-[5.25rem]" : "lg:pl-[15rem]"
         }`}
       >
         <Topbar onOpenMobile={() => setMobileOpen(true)} />
         <main
           id="contenido-principal"
-          className="px-4 py-7 sm:px-6 lg:px-8 lg:py-8"
+          className="min-w-0 px-4 py-7 sm:px-6 lg:px-8 lg:py-8"
         >
-          <div className="mx-auto w-full max-w-[90rem]">{children}</div>
+          <div className="mx-auto w-[calc(100vw-2rem)] max-w-[90rem] min-w-0 sm:w-[calc(100vw-3rem)] lg:w-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>

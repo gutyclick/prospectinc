@@ -35,6 +35,7 @@ export function ProposalFormModal({
   onCreate: (values: ProposalFormValues) => Promise<void>;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
   const {
     control,
     register,
@@ -77,11 +78,34 @@ export function ProposalFormModal({
   }, [initialProspectId, open, reset]);
   useEffect(() => {
     if (!open) return;
+    const previousElement =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    document.body.style.overflow = "hidden";
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
+      if (event.key === "Tab") {
+        const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        );
+        const first = focusable?.item(0);
+        const last = focusable?.item((focusable?.length ?? 1) - 1);
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
     };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+      previousElement?.focus();
+    };
   }, [onClose, open]);
   if (!open) return null;
 
@@ -104,6 +128,7 @@ export function ProposalFormModal({
       }}
     >
       <section
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="proposal-form-title"

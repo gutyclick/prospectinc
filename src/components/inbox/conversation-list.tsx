@@ -3,6 +3,7 @@ import { Mail, MessageCircle, Phone } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { InboxItem } from "@/lib/domain";
+import { conversationStatusLabels } from "@/lib/domain/prospect-presentation";
 
 const relative = new Intl.RelativeTimeFormat("es", { numeric: "auto" });
 function relativeTime(iso: string) {
@@ -11,13 +12,6 @@ function relativeTime(iso: string) {
     ? relative.format(hours, "hour")
     : relative.format(Math.round(hours / 24), "day");
 }
-const statusLabels = {
-  "sin-contactar": "Por contactar",
-  "esperando-respuesta": "Enviado",
-  respondio: "Respondió",
-  seguimiento: "Seguimiento",
-  cerrada: "Cerrada",
-} as const;
 const channelIcons = {
   correo: Mail,
   whatsapp: MessageCircle,
@@ -95,7 +89,7 @@ export function ConversationList({
                         : "blue"
                   }
                 >
-                  {statusLabels[item.status]}
+                  {conversationStatusLabels[item.status]}
                 </StatusBadge>
               </div>
               {item.nextAction ? (
