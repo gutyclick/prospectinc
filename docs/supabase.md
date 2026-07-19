@@ -18,7 +18,7 @@ pnpm supabase:reset
 pnpm supabase:types
 ```
 
-`supabase start` muestra la URL y las claves locales. Copia solamente la URL y clave publicable a `.env.local`, junto con `NEXT_PUBLIC_APP_URL=http://localhost:3000`. Configura `APP_OWNER_EMAIL` con el correo exacto del propietario.
+`supabase start` muestra la URL y las claves locales. Copia solamente la URL y clave publicable a `.env.local`, junto con `NEXT_PUBLIC_APP_URL=http://localhost:3000`. Configura `APP_OWNER_EMAIL` con el correo exacto del propietario y `DATA_PROVIDER=supabase`.
 
 El seed crea datos ficticios y un usuario Auth sin contraseña. No contiene secretos ni permite iniciar sesión. Para probar Auth, abre Studio en `http://127.0.0.1:54323`, crea o actualiza el usuario propietario con una contraseña y usa el mismo correo en `APP_OWNER_EMAIL`.
 
@@ -32,6 +32,16 @@ Mailpit captura localmente los correos de recuperación en `http://127.0.0.1:543
 4. Ejecuta `pnpm supabase:test` y `pnpm supabase:lint`.
 5. Regenera tipos con `pnpm supabase:types` y revisa el diff.
 6. Ejecuta `pnpm validate` y `pnpm build`.
+
+## Importar datos demo
+
+La importación nunca se ejecuta durante migraciones ni despliegues. Puede iniciarse explícitamente desde Configuración o mediante:
+
+```bash
+pnpm demo:import
+```
+
+El comando solicita las credenciales del propietario sin almacenarlas y llama la RPC con su sesión autenticada. La operación es idempotente por `google_place_id`.
 
 No edites `src/types/database.types.ts` como sustituto permanente de la regeneración. El archivo versionado debe coincidir con el resultado de la CLI.
 

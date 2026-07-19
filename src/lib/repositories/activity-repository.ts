@@ -4,6 +4,7 @@ import { mockActivities } from "@/lib/mock-data";
 export type ActivityRepository = {
   getAll(): Promise<Activity[]>;
   getRecentActivities(limit?: number): Promise<Activity[]>;
+  importDemoData?(): Promise<number>;
 };
 
 export const activityRepository: ActivityRepository = {

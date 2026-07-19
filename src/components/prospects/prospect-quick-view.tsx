@@ -1,5 +1,6 @@
 import {
   Bookmark,
+  Ban,
   ExternalLink,
   Mail,
   MessageCircle,
@@ -10,7 +11,7 @@ import Link from "next/link";
 
 import { SectionCard } from "@/components/ui/section-card";
 import { StatusBadge } from "@/components/ui/status-badge";
-import type { Prospect } from "@/lib/domain";
+import type { CommercialStatus, Prospect } from "@/lib/domain";
 import {
   commercialStatusLabels,
   websiteStatusLabels,
@@ -19,9 +20,13 @@ import {
 export function ProspectQuickView({
   prospect,
   onSave,
+  onStatusChange,
+  onExclude,
 }: {
   prospect: Prospect | null;
   onSave: () => void;
+  onStatusChange: (status: CommercialStatus) => void;
+  onExclude: () => void;
 }) {
   if (!prospect) {
     return (
@@ -34,10 +39,18 @@ export function ProspectQuickView({
   }
 
   const contacts = [
-    prospect.publicEmail ? { label: prospect.publicEmail, icon: Mail } : null,
-    prospect.publicPhone ? { label: prospect.publicPhone, icon: Phone } : null,
+    prospect.publicEmail
+      ? { type: "email", label: prospect.publicEmail, icon: Mail }
+      : null,
+    prospect.publicPhone
+      ? { type: "phone", label: prospect.publicPhone, icon: Phone }
+      : null,
     prospect.publicWhatsapp
-      ? { label: prospect.publicWhatsapp, icon: MessageCircle }
+      ? {
+          type: "whatsapp",
+          label: prospect.publicWhatsapp,
+          icon: MessageCircle,
+        }
       : null,
   ].filter((contact) => contact !== null);
 
@@ -70,6 +83,29 @@ export function ProspectQuickView({
         </StatusBadge>
       </div>
 
+      <div>
+        <label
+          htmlFor="estado-comercial"
+          className="mb-2 block text-xs font-semibold tracking-wide text-slate-500 uppercase"
+        >
+          Estado comercial
+        </label>
+        <select
+          id="estado-comercial"
+          value={prospect.commercialStatus}
+          onChange={(event) =>
+            onStatusChange(event.target.value as CommercialStatus)
+          }
+          className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
+        >
+          {Object.entries(commercialStatusLabels).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <section>
         <h3 className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
           Contacto público
@@ -80,7 +116,7 @@ export function ProspectQuickView({
               const Icon = contact.icon;
               return (
                 <p
-                  key={contact.label}
+                  key={`${contact.type}-${contact.label}`}
                   className="flex items-center gap-2 text-sm text-slate-700"
                 >
                   <Icon className="size-4 text-blue-600" aria-hidden="true" />
@@ -158,6 +194,16 @@ export function ProspectQuickView({
           <Send className="size-4" aria-hidden="true" />
           Crear propuesta
         </Link>
+        {contacts.length > 0 ? (
+          <button
+            type="button"
+            onClick={onExclude}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-200 px-3 text-sm font-semibold text-red-700 hover:bg-red-50 sm:col-span-2"
+          >
+            <Ban className="size-4" aria-hidden="true" /> Excluir contacto
+            principal
+          </button>
+        ) : null}
       </div>
     </SectionCard>
   );

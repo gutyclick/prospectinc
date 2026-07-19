@@ -4,13 +4,18 @@ import { Download, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { PageHeader } from "@/components/layout/page-header";
+import {
+  addExclusionAction,
+  createProspectAction,
+  updateProspectStatusAction,
+} from "@/app/actions/data";
 import type { Prospect } from "@/lib/domain";
+import type { CommercialStatus } from "@/lib/domain";
 import {
   applyProspectFilters,
   prospectFiltersToSearchParams,
   type ProspectFilters as ProspectFilterValues,
 } from "@/lib/domain/prospect-filters";
-import { prospectRepository } from "@/lib/repositories";
 import { downloadProspectsCsv } from "@/lib/utils/prospect-csv";
 import type { ProspectFormValues } from "@/lib/validation";
 
@@ -59,19 +64,62 @@ export function ProspectsView({
   }
 
   async function addProspect(values: ProspectFormValues) {
-    const prospect = await prospectRepository.createProspect(values);
+    const result = await createProspectAction(values);
+    if (!result.ok) {
+      setNotification(result.error);
+      return;
+    }
+    const prospect = result.data;
     setProspects((current) => [prospect, ...current]);
     setSelectedId(prospect.id);
     setModalOpen(false);
-    setNotification(
-      `${prospect.businessName} se añadió al repositorio simulado.`,
-    );
+    setNotification(`${prospect.businessName} se guardó correctamente.`);
   }
 
   function exportVisibleProspects() {
     downloadProspectsCsv(visibleProspects);
     setNotification(
       `Se exportaron ${visibleProspects.length} prospectos visibles.`,
+    );
+  }
+
+  async function changeStatus(status: CommercialStatus) {
+    if (!selectedProspect) return;
+    const result = await updateProspectStatusAction(
+      selectedProspect.id,
+      status,
+    );
+    if (!result.ok) {
+      setNotification(result.error);
+      return;
+    }
+    setProspects((current) =>
+      current.map((item) => (item.id === result.data.id ? result.data : item)),
+    );
+    setNotification("Estado comercial actualizado.");
+  }
+
+  async function excludePrimaryContact() {
+    if (!selectedProspect) return;
+    const contact = selectedProspect.publicEmail
+      ? { type: "email" as const, value: selectedProspect.publicEmail }
+      : selectedProspect.publicWhatsapp
+        ? { type: "whatsapp" as const, value: selectedProspect.publicWhatsapp }
+        : selectedProspect.publicPhone
+          ? { type: "phone" as const, value: selectedProspect.publicPhone }
+          : null;
+    if (
+      !contact ||
+      !window.confirm(`¿Añadir ${contact.value} a la lista de exclusión?`)
+    )
+      return;
+    const result = await addExclusionAction({
+      type: contact.type,
+      normalizedValue: contact.value.trim().toLowerCase(),
+      reason: "Exclusión manual desde Prospectos",
+    });
+    setNotification(
+      result.ok ? "Contacto añadido a la lista de exclusión." : result.error,
     );
   }
 
@@ -143,6 +191,8 @@ export function ProspectsView({
               `${selectedProspect?.businessName ?? "El prospecto"} se guardó.`,
             )
           }
+          onStatusChange={(status) => void changeStatus(status)}
+          onExclude={() => void excludePrimaryContact()}
         />
       </div>
 

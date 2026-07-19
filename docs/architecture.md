@@ -130,6 +130,17 @@ Cada integración se implementará como adaptador detrás de una interfaz propia
 - `supabase/migrations` es la fuente de verdad del esquema y `src/types/database.types.ts` refleja sus tipos.
 - Todas las tablas comerciales tienen RLS. Las relaciones compuestas impiden vincular registros de propietarios distintos.
 
+## Repositorios persistentes
+
+`getRepositories()` compone los adaptadores por solicitud después de verificar al propietario. Fuera de pruebas, el único proveedor permitido es `supabase`; los mocks no forman parte del camino de producción.
+
+- Las rutas Server Components consultan interfaces de repositorio, nunca el SDK directamente.
+- Las mutaciones atraviesan Server Actions, vuelven a validar con Zod y revalidan las rutas afectadas.
+- Los adaptadores convierten filas `snake_case` al dominio y transforman errores externos en `RepositoryError`.
+- Prospectos y contactos se cargan por lotes; Bandeja agrupa conversaciones, mensajes, prospectos y contactos sin N+1.
+- Las operaciones que modifican varias tablas usan RPC PostgreSQL transaccionales.
+- Filtros, segmentos, embudos y CSV operan sobre datos reales recibidos desde el servidor.
+
 ## Seguridad y privacidad
 
 - Solo almacenar contactos empresariales publicados públicamente y su URL de origen.

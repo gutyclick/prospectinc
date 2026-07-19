@@ -64,7 +64,7 @@ describe("flujo de búsquedas simuladas", () => {
     expect(await screen.findByText(/Análisis completado:/)).toBeInTheDocument();
     expect(screen.getAllByText("Veterinarias")).not.toHaveLength(0);
     expect(
-      screen.getByText(/Se completó la búsqueda simulada de Veterinarias/),
+      screen.getByText(/Se completó la búsqueda de Veterinarias/),
     ).toBeInTheDocument();
   });
 

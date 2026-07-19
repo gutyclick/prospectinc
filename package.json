@@ -19,7 +19,9 @@
     "supabase:migrate": "supabase migration up --local",
     "supabase:test": "supabase test db",
     "supabase:lint": "supabase db lint --local --level error",
-    "supabase:types": "node scripts/generate-supabase-types.mjs"
+    "supabase:types": "node scripts/generate-supabase-types.mjs",
+    "supabase:types:linked": "node scripts/generate-supabase-types.mjs --linked",
+    "demo:import": "node --env-file-if-exists=.env.local scripts/import-demo-data.mjs"
   },
   "packageManager": "pnpm@11.15.0",
   "dependencies": {

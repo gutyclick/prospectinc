@@ -4,6 +4,10 @@ import { LayoutTemplate, Plus, Send, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PageHeader } from "@/components/layout/page-header";
+import {
+  createProposalAction,
+  updateProposalStatusAction,
+} from "@/app/actions/data";
 import { ProposalFormModal } from "@/components/proposals/proposal-form-modal";
 import { ProposalMetrics } from "@/components/proposals/proposal-metrics";
 import { ProposalPerformance } from "@/components/proposals/proposal-performance";
@@ -15,7 +19,6 @@ import {
 } from "@/components/proposals/proposal-table";
 import { Button } from "@/components/ui/button";
 import type { Proposal, Prospect } from "@/lib/domain";
-import { proposalRepository } from "@/lib/repositories";
 import type { ProposalFormValues } from "@/lib/validation";
 
 const initialFilters: ProposalFilters = {
@@ -85,20 +88,12 @@ export function ProposalsView({
   async function create(values: ProposalFormValues) {
     const prospect = prospects.find((item) => item.id === values.prospectId);
     if (!prospect) return;
-    const proposal = await proposalRepository.create({
-      prospectId: values.prospectId,
-      service: values.service,
-      price: values.price,
-      currency: values.currency,
-      summary: values.summary,
-      includedItems: values.includedItems
-        .split("\n")
-        .map((item) => item.trim())
-        .filter(Boolean),
-      recommendedAngle: prospect.recommendedOffer,
-      deliveryTime: values.deliveryTime,
-      callToAction: values.callToAction,
-    });
+    const result = await createProposalAction(values);
+    if (!result.ok) {
+      setNotice(result.error);
+      return;
+    }
+    const proposal = result.data;
     setProposals((current) => [proposal, ...current]);
     setSelectedId(proposal.id);
     setFormOpen(false);
@@ -107,7 +102,12 @@ export function ProposalsView({
 
   async function setStatus(status: "borrador" | "lista") {
     if (!selected) return;
-    const updated = await proposalRepository.updateStatus(selected.id, status);
+    const result = await updateProposalStatusAction(selected.id, status);
+    if (!result.ok) {
+      setNotice(result.error);
+      return;
+    }
+    const updated = result.data;
     setProposals((current) =>
       current.map((proposal) =>
         proposal.id === updated.id ? updated : proposal,
@@ -117,7 +117,7 @@ export function ProposalsView({
     setNotice(
       status === "lista"
         ? "La propuesta quedó lista para enviar. No se envió ningún mensaje."
-        : "Borrador guardado localmente.",
+        : "Borrador guardado correctamente.",
     );
   }
 

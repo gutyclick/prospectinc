@@ -2,7 +2,7 @@
 
 ## Principio de integración
 
-Toda integración se implementa como un adaptador reemplazable detrás de una interfaz controlada por la aplicación. Los tipos del SDK no atraviesan esa frontera y los componentes no conocen proveedores. Supabase Auth y su infraestructura SSR ya están conectados; los repositorios Supabase y los demás proveedores siguen pendientes.
+Toda integración se implementa como un adaptador reemplazable detrás de una interfaz controlada por la aplicación. Los tipos del SDK no atraviesan esa frontera y los componentes no conocen proveedores. Supabase Auth, la infraestructura SSR y los repositorios persistentes ya están conectados; los demás proveedores siguen pendientes.
 
 ## Catálogo previsto
 
@@ -62,7 +62,7 @@ Encola una operación tipada con identificador de propietario, recurso e idempot
 
 ## Orden de incorporación
 
-1. Supabase, autenticación, RLS y adaptadores de repositorio.
+1. Supabase, autenticación, RLS y adaptadores de repositorio (completado).
 2. Trigger.dev y Google Places para descubrimiento controlado.
 3. Analizador de páginas y OpenAI para resultados revisables.
 4. Google OAuth y Gmail para crear borradores.
@@ -78,4 +78,4 @@ Cada paso conserva el adaptador simulado hasta superar pruebas de contrato, inte
 - No generación o inferencia de datos de contacto.
 - No exposición de SDK privilegiados o secretos al navegador.
 
-Supabase es la única integración iniciada: existen clientes SSR, autenticación y esquema, pero las pantallas conservan los datos simulados. No se conectaron Google Places, Trigger.dev, OpenAI, Gmail ni WhatsApp.
+Supabase es la única integración activa: existen clientes SSR, autenticación, esquema, adaptadores y acciones de servidor. Las pantallas internas leen y modifican PostgreSQL; los datos simulados quedan reservados para pruebas. No se conectaron Google Places, Trigger.dev, OpenAI, Gmail ni WhatsApp.

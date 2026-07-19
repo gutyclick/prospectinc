@@ -98,9 +98,7 @@ describe("centro de prospectos", () => {
     );
 
     expect(
-      await screen.findByText(
-        "Café Horizonte se añadió al repositorio simulado.",
-      ),
+      await screen.findByText("Café Horizonte se guardó correctamente."),
     ).toBeInTheDocument();
     expect(screen.getAllByText("Café Horizonte")).not.toHaveLength(0);
     await expect(prospectRepository.getAll()).resolves.toHaveLength(7);

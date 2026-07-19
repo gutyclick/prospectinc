@@ -1,4 +1,9 @@
-import type { Conversation, ConversationStatus, InboxItem } from "@/lib/domain";
+import type {
+  CommercialStatus,
+  Conversation,
+  ConversationStatus,
+  InboxItem,
+} from "@/lib/domain";
 import { mockConversations } from "@/lib/mock-data";
 import { conversationSchema } from "@/lib/validation";
 
@@ -15,6 +20,13 @@ export type ConversationRepository = {
     id: string,
     status: ConversationStatus,
     nextAction: string | null,
+  ): Promise<Conversation>;
+  transitionCommercial?(
+    id: string,
+    status: ConversationStatus,
+    commercialStatus: CommercialStatus,
+    nextAction: string | null,
+    followUpAt: string | null,
   ): Promise<Conversation>;
 };
 

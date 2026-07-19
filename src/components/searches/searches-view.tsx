@@ -5,10 +5,10 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { RecentActivity } from "@/components/dashboard/recent-activity";
+import { completeSearchAction, createSearchAction } from "@/app/actions/data";
 import { PageHeader } from "@/components/layout/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import type { Activity, Search as SearchRecord } from "@/lib/domain";
-import { searchRepository } from "@/lib/repositories";
 import type { SearchFormValues } from "@/lib/validation";
 
 import { PanamaOpportunityMap } from "./panama-opportunity-map";
@@ -67,12 +67,9 @@ export function SearchesView({
     setActiveStage(0);
 
     try {
-      const created = await searchRepository.createSearch({
-        query: values.query,
-        location: values.location,
-        resultLimit: values.resultLimit,
-        sources: values.sources,
-      });
+      const createResult = await createSearchAction(values);
+      if (!createResult.ok) throw new Error(createResult.error);
+      const created = createResult.data;
       setSearches((current) => [created, ...current]);
 
       for (let stage = 0; stage < SEARCH_STAGES.length; stage += 1) {
@@ -80,7 +77,9 @@ export function SearchesView({
         await delay(stageDelayMs);
       }
 
-      const completed = await searchRepository.completeSearch(created.id);
+      const completeResult = await completeSearchAction(created.id);
+      if (!completeResult.ok) throw new Error(completeResult.error);
+      const completed = completeResult.data;
       setSearches((current) =>
         current.map((search) =>
           search.id === completed.id ? completed : search,
@@ -90,13 +89,19 @@ export function SearchesView({
         {
           id: `activity-${completed.id}`,
           type: "busqueda",
-          description: `Se completó la búsqueda simulada de ${completed.query} en ${completed.location}.`,
+          description: `Se completó la búsqueda de ${completed.query} en ${completed.location}.`,
           createdAt: new Date().toISOString(),
         },
         ...current,
       ]);
       setNotification(
         `Análisis completado: ${completed.resultsCount} negocios y ${completed.opportunitiesCount} oportunidades detectadas.`,
+      );
+    } catch (error) {
+      setNotification(
+        error instanceof Error
+          ? error.message
+          : "No se pudo iniciar la búsqueda. Intenta nuevamente.",
       );
     } finally {
       setIsProcessing(false);
@@ -121,7 +126,7 @@ export function SearchesView({
 
       <SectionCard
         title="Crear nueva búsqueda"
-        description="Los resultados son simulados y no consultan servicios externos."
+        description="Configura una búsqueda persistente. El descubrimiento externo se conectará en la siguiente fase."
         className="scroll-mt-24"
         contentClassName="p-5"
       >

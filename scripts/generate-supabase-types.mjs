@@ -3,10 +3,11 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const isWindows = process.platform === "win32";
+const target = process.argv.includes("--linked") ? "--linked" : "--local";
 const executable = isWindows ? (process.env.ComSpec ?? "cmd.exe") : "supabase";
 const args = isWindows
-  ? ["/d", "/s", "/c", "supabase.CMD gen types typescript --local"]
-  : ["gen", "types", "typescript", "--local"];
+  ? ["/d", "/s", "/c", `supabase.CMD gen types typescript ${target}`]
+  : ["gen", "types", "typescript", target];
 
 const result = spawnSync(executable, args, {
   cwd: process.cwd(),

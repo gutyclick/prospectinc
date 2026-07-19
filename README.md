@@ -45,6 +45,7 @@ pnpm supabase:migrate # Aplicar migraciones locales pendientes
 pnpm supabase:test    # Ejecutar pruebas pgTAP
 pnpm supabase:lint    # Revisar funciones y esquema PostgreSQL
 pnpm supabase:types   # Regenerar tipos TypeScript desde la DB local
+pnpm demo:import      # Importar datos demo tras autenticar al propietario
 ```
 
 ## Estructura
@@ -68,6 +69,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<clave publicable mostrada por supabase status>
 APP_OWNER_EMAIL=<correo exacto del usuario creado en Auth>
+DATA_PROVIDER=supabase
 ```
 
 No uses `SUPABASE_SERVICE_ROLE_KEY` en el navegador. La aplicación valida `APP_OWNER_EMAIL` en Proxy, en las rutas protegidas y durante el inicio de sesión.

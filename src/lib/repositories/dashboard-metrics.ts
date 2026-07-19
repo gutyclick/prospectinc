@@ -4,17 +4,17 @@ import type {
   TodayRecommendation,
 } from "@/lib/domain";
 
-import { conversationRepository } from "./conversation-repository";
-import { proposalRepository } from "./proposal-repository";
-import { prospectRepository } from "./prospect-repository";
-import { searchRepository } from "./search-repository";
+import { getRepositories, type RepositoryBundle } from "./provider";
 
-export async function getDashboardMetrics(): Promise<DashboardMetrics> {
+export async function getDashboardMetrics(
+  bundle?: RepositoryBundle,
+): Promise<DashboardMetrics> {
+  const repositories = bundle ?? (await getRepositories());
   const [prospects, proposals, conversations, searches] = await Promise.all([
-    prospectRepository.getAll(),
-    proposalRepository.getAll(),
-    conversationRepository.getAll(),
-    searchRepository.getAll(),
+    repositories.prospects.getAll(),
+    repositories.proposals.getAll(),
+    repositories.conversations.getAll(),
+    repositories.searches.getAll(),
   ]);
 
   const totalScore = prospects.reduce(
@@ -42,11 +42,14 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   };
 }
 
-export async function getProspectingFunnel(): Promise<ProspectingFunnel> {
+export async function getProspectingFunnel(
+  bundle?: RepositoryBundle,
+): Promise<ProspectingFunnel> {
+  const repositories = bundle ?? (await getRepositories());
   const [prospects, proposals, conversations] = await Promise.all([
-    prospectRepository.getAll(),
-    proposalRepository.getAll(),
-    conversationRepository.getAll(),
+    repositories.prospects.getAll(),
+    repositories.proposals.getAll(),
+    repositories.conversations.getAll(),
   ]);
   const qualifiedStatuses = new Set([
     "calificado",
@@ -74,13 +77,14 @@ export async function getProspectingFunnel(): Promise<ProspectingFunnel> {
   };
 }
 
-export async function getTodayRecommendations(): Promise<
-  TodayRecommendation[]
-> {
+export async function getTodayRecommendations(
+  bundle?: RepositoryBundle,
+): Promise<TodayRecommendation[]> {
+  const repositories = bundle ?? (await getRepositories());
   const [prospects, proposals, conversations] = await Promise.all([
-    prospectRepository.getAll(),
-    proposalRepository.getAll(),
-    conversationRepository.getAll(),
+    repositories.prospects.getAll(),
+    repositories.proposals.getAll(),
+    repositories.conversations.getAll(),
   ]);
   const highScoreProspects = prospects.filter(
     (prospect) => prospect.opportunityScore >= 85,

@@ -8,7 +8,7 @@ Reemplazar progresivamente los adaptadores simulados de Prospector AI por persis
 
 - Next.js App Router entrega las lecturas iniciales desde Server Components.
 - Los componentes reciben datos serializables mediante props.
-- Los repositorios tienen contratos asíncronos, pero sus adaptadores actuales conservan arreglos mutables en memoria.
+- Los repositorios conservan contratos asíncronos y cuentan con adaptadores Supabase; los adaptadores en memoria se usan únicamente en pruebas.
 - Los fixtures viven exclusivamente en `src/lib/mock-data` y no son importados por componentes de producción.
 - Zod define las fronteras de validación y TypeScript infiere los tipos de dominio.
 - No existen todavía autenticación, base de datos, colas ni clientes de APIs externas.
@@ -127,4 +127,4 @@ La separación es suficiente para iniciar la migración, pero no está completa 
 
 ## Estado tras la incorporación de Supabase
 
-Supabase Auth, el esquema PostgreSQL, RLS, migraciones y utilidades SSR están implementados. Los repositorios simulados permanecen activos y todavía no se conectan Google Places, Trigger.dev, OpenAI, Gmail ni WhatsApp.
+Supabase Auth, el esquema PostgreSQL, RLS, migraciones, utilidades SSR, repositorios persistentes y Server Actions están implementados. `DATA_PROVIDER=supabase` es el proveedor de ejecución y los adaptadores simulados permanecen disponibles únicamente para pruebas. Las consultas relacionadas se agrupan para evitar N+1 y las operaciones compuestas usan funciones RPC transaccionales. Todavía no se conectan Google Places, Trigger.dev, OpenAI, Gmail ni WhatsApp.
