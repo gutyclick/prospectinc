@@ -1,5 +1,13 @@
-import { PageHeader } from "@/components/layout/page-header";
+import { SearchesView } from "@/components/searches/searches-view";
+import { activityRepository, searchRepository } from "@/lib/repositories";
 
-export default function BusquedasPage() {
-  return <PageHeader title="Búsquedas" />;
+export default async function BusquedasPage() {
+  const [searches, activities] = await Promise.all([
+    searchRepository.getRecentSearches(10),
+    activityRepository.getRecentActivities(5),
+  ]);
+
+  return (
+    <SearchesView initialSearches={searches} initialActivities={activities} />
+  );
 }

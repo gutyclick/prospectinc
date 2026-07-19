@@ -8,7 +8,7 @@ export const mockSearches = z.array(searchSchema).parse([
     query: "Clínicas dentales",
     location: "Ciudad de Panamá, Panamá",
     resultLimit: 50,
-    sources: ["directorios", "instagram", "sitios-web"],
+    sources: ["google-places", "instagram", "sitios-web"],
     status: "completada",
     resultsCount: 50,
     opportunitiesCount: 12,

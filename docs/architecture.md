@@ -92,6 +92,8 @@ Los estados de sitio web, proceso comercial, búsqueda, propuesta y conversació
 
 La capa actual expone `prospectRepository`, `searchRepository`, `proposalRepository`, `conversationRepository` y `activityRepository` mediante contratos asíncronos. Las métricas del dashboard se calculan componiendo esos repositorios, sin leer fixtures desde las páginas ni duplicar datos relacionados.
 
+Durante el prototipo, `searchRepository` mantiene una colección mutable únicamente en memoria para demostrar la creación y finalización de búsquedas sin recargar la página. El estado vuelve a los fixtures al reiniciar la aplicación y no representa persistencia real. El formulario conserva preferencias transitorias —canal y nivel de oportunidad— fuera del registro `Search` hasta que el modelo de persistencia las requiera.
+
 ## Estado y obtención de datos
 
 - Preferir parámetros de ruta y búsqueda para estado navegable.

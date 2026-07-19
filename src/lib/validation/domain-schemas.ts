@@ -78,6 +78,7 @@ export const prospectSchema = z
   });
 
 export const searchSourceSchema = z.enum([
+  "google-places",
   "directorios",
   "instagram",
   "sitios-web",

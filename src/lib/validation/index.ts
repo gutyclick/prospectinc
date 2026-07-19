@@ -14,3 +14,9 @@ export {
   searchStatusSchema,
   websiteStatusSchema,
 } from "./domain-schemas";
+export {
+  opportunityLevelSchema,
+  preferredChannelSchema,
+  searchFormSchema,
+  type SearchFormValues,
+} from "./search-form-schema";
