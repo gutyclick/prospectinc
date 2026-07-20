@@ -76,7 +76,8 @@ GOOGLE_PLACES_API_KEY=<clave restringida a Places API (New)>
 GOOGLE_PLACES_MAX_RESULTS=20
 TRIGGER_SECRET_KEY=<clave secreta del entorno de Trigger.dev>
 TRIGGER_PROJECT_REF=<referencia proj_... del proyecto Trigger.dev>
-WEBSITE_ANALYSIS_TIMEOUT_MS=60000
+WEBSITE_AUDIT_TIMEOUT_MS=30000
+WEBSITE_AUDIT_CONCURRENCY=2
 ```
 
 No uses `SUPABASE_SERVICE_ROLE_KEY` en el navegador. La aplicación valida `APP_OWNER_EMAIL` en Proxy, en las rutas protegidas y durante el inicio de sesión.

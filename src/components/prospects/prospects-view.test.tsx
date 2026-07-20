@@ -86,7 +86,7 @@ describe("centro de prospectos", () => {
       screen.getByRole("button", { name: "Ver Taller AutoMax" }),
     );
     await user.click(
-      screen.getByRole("button", { name: "Reanalizar sitio web" }),
+      screen.getByRole("button", { name: "Analizar sitio web" }),
     );
 
     expect(

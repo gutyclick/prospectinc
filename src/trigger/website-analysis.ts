@@ -10,6 +10,10 @@ import { z } from "zod";
 
 import { UnsafeUrlError } from "@/lib/services/safe-web-url";
 import { analyzeWebsite } from "@/lib/services/website-analyzer";
+import {
+  calculateWebsiteStatus,
+  mapAuditResultToProspectStatus,
+} from "@/lib/domain/website-audit";
 
 import { selectProspectsForAnalysis } from "./task-domain";
 import {
@@ -26,7 +30,13 @@ const websitePayloadSchema = z.object({
 
 export const analyzeProspectWebsite = task({
   id: "analyze-prospect-website",
-  queue: { name: "website-analysis", concurrencyLimit: 2 },
+  queue: {
+    name: "website-analysis",
+    concurrencyLimit: Math.min(
+      2,
+      Math.max(1, Number(process.env.WEBSITE_AUDIT_CONCURRENCY ?? 2)),
+    ),
+  },
   maxDuration: 150,
   retry: { maxAttempts: 2 },
   run: async (input: unknown, { signal, ctx }) => {
@@ -58,12 +68,24 @@ export const analyzeProspectWebsite = task({
       if ((count ?? 0) > 0) return { status: "omitido-reciente" as const };
     }
 
+    const { data: activeAudit } = await client
+      .from("website_audits")
+      .select("id")
+      .eq("prospect_id", prospect.id)
+      .eq("owner_id", payload.data.ownerId)
+      .in("status", ["pendiente", "analizando"])
+      .maybeSingle();
+    if (activeAudit)
+      return { status: "omitido-activo" as const, auditId: activeAudit.id };
+
     const { data: audit, error: insertError } = await client
       .from("website_audits")
       .insert({
         owner_id: payload.data.ownerId,
         prospect_id: prospect.id,
-        status: "analizando",
+        status: "pendiente",
+        progress: 10,
+        external_run_id: ctx.run.id,
         initial_url: prospect.website_url,
         final_url: prospect.website_url,
         facts: { source: "trigger-playwright", runId: ctx.run.id },
@@ -74,21 +96,30 @@ export const analyzeProspectWebsite = task({
       throw new Error("No se pudo preparar la auditoría.");
 
     try {
+      await client
+        .from("website_audits")
+        .update({ status: "analizando", progress: 25 })
+        .eq("id", audit.id);
       const analysis = await analyzeWebsite(prospect.website_url, {
         signal,
-        timeoutMs: Number(process.env.WEBSITE_ANALYSIS_TIMEOUT_MS ?? 60_000),
+        timeoutMs: Number(process.env.WEBSITE_AUDIT_TIMEOUT_MS ?? 30_000),
       });
-      const basePath = `${payload.data.ownerId}/${prospect.id}/${audit.id}`;
-      const upload = async (name: string, contents: Buffer | null) => {
+      const basePath = `owners/${payload.data.ownerId}/prospects/${prospect.id}/audits/${audit.id}`;
+      const upload = async (path: string, contents: Buffer | null) => {
         if (!contents) return null;
-        const path = `${basePath}/${name}.png`;
         const { error: uploadError } = await client.storage
           .from("website-audits")
           .upload(path, contents, { contentType: "image/png", upsert: false });
         return uploadError ? null : path;
       };
-      const desktopPath = await upload("desktop", analysis.desktopScreenshot);
-      const mobilePath = await upload("mobile", analysis.mobileScreenshot);
+      const desktopPath = await upload(
+        `${basePath}.png`,
+        analysis.desktopScreenshot,
+      );
+      const mobilePath = await upload(
+        `${basePath}.mobile.png`,
+        analysis.mobileScreenshot,
+      );
 
       const { data: exclusions } = await client
         .from("exclusion_list")
@@ -134,10 +165,24 @@ export const analyzeProspectWebsite = task({
 
       const copyrightYear =
         analysis.facts.copyright?.match(/\b(19|20)\d{2}\b/)?.[0];
+      const classification = calculateWebsiteStatus({
+        hasWebsite: true,
+        reachable: analysis.facts.websiteReachable,
+        usesHttps: analysis.finalUrl.startsWith("https:"),
+        hasMobileViewport: analysis.facts.hasMobileViewport,
+        hasMetaDescription: analysis.facts.hasMetaDescription,
+        hasContactMethod: analysis.facts.contacts.length > 0,
+        hasBooking: analysis.facts.hasBooking,
+        hasServicesContent: analysis.facts.hasServicesContent,
+        brokenLinksCount: analysis.brokenLinksCount,
+        copyrightYear: copyrightYear ? Number(copyrightYear) : null,
+      });
       const { error: updateError } = await client
         .from("website_audits")
         .update({
           status: "completada",
+          progress: 100,
+          result_status: classification.result,
           final_url: analysis.finalUrl,
           http_status: analysis.httpStatus,
           uses_https: analysis.finalUrl.startsWith("https:"),
@@ -158,6 +203,7 @@ export const analyzeProspectWebsite = task({
             ...analysis.facts,
             initialUrl: analysis.initialUrl,
             mobileScreenshotPath: mobilePath,
+            warnings: classification.warnings,
           },
           analyzed_at: new Date().toISOString(),
           error_message: null,
@@ -170,6 +216,7 @@ export const analyzeProspectWebsite = task({
           website_url: analysis.finalUrl,
           website_url_source: "official_website",
           website_url_verified_at: new Date().toISOString(),
+          website_status: mapAuditResultToProspectStatus(classification.result),
         })
         .eq("id", prospect.id)
         .eq("owner_id", payload.data.ownerId);
@@ -185,6 +232,8 @@ export const analyzeProspectWebsite = task({
         .from("website_audits")
         .update({
           status: "fallida",
+          progress: 100,
+          result_status: "unreachable",
           error_message:
             error instanceof UnsafeUrlError
               ? error.message
@@ -199,8 +248,8 @@ export const analyzeProspectWebsite = task({
   },
 });
 
-export const analyzeSearchProspects = task({
-  id: "analyze-search-prospects",
+export const analyzeSearchWebsites = task({
+  id: "analyze-search-websites",
   maxDuration: 300,
   retry: { maxAttempts: 2 },
   run: async (input: unknown, { signal, ctx }) => {

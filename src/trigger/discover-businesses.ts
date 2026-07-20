@@ -11,7 +11,7 @@ import { GooglePlacesDiscoveryProvider } from "@/lib/services/google-places-disc
 import type { Json } from "@/types/database.types";
 
 import { getAuthorizedTaskContext, markSearchFailed } from "./task-support";
-import { analyzeSearchProspects } from "./website-analysis";
+import { analyzeSearchWebsites } from "./website-analysis";
 
 function permanentProviderFailure(error: unknown) {
   return (
@@ -127,7 +127,7 @@ export const discoverBusinesses = task({
         .eq("owner_id", ownerId);
       metadata.set("stage", "preparando").set("progress", 80);
 
-      const analyses = await analyzeSearchProspects.triggerAndWait({
+      const analyses = await analyzeSearchWebsites.triggerAndWait({
         searchId,
         ownerId,
         force: false,

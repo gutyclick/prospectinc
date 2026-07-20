@@ -21,7 +21,7 @@ import { mapSearch } from "@/lib/repositories/supabase/mappers";
 import type { discoverBusinesses } from "@/trigger/discover-businesses";
 import type {
   analyzeProspectWebsite,
-  analyzeSearchProspects,
+  analyzeSearchWebsites,
 } from "@/trigger/website-analysis";
 import {
   proposalFormSchema,
@@ -214,8 +214,8 @@ export async function analyzeSearchWebsitesAction(id: unknown) {
       `analyze-search-manual:${search.id}`,
       { scope: "global" },
     );
-    const handle = await tasks.trigger<typeof analyzeSearchProspects>(
-      "analyze-search-prospects",
+    const handle = await tasks.trigger<typeof analyzeSearchWebsites>(
+      "analyze-search-websites",
       { searchId: search.id, ownerId: owner.id, force: false },
       {
         idempotencyKey,
@@ -227,9 +227,13 @@ export async function analyzeSearchWebsitesAction(id: unknown) {
   });
 }
 
-export async function reanalyzeProspectWebsiteAction(id: unknown) {
+export async function reanalyzeProspectWebsiteAction(
+  id: unknown,
+  forceInput: unknown = false,
+) {
   return execute(async () => {
     const prospectId = z.string().uuid().parse(id);
+    const force = z.boolean().parse(forceInput);
     const [client, owner] = await Promise.all([createClient(), requireOwner()]);
     const { data: prospect, error } = await client
       .from("prospects")
@@ -250,7 +254,7 @@ export async function reanalyzeProspectWebsiteAction(id: unknown) {
     );
     const handle = await tasks.trigger<typeof analyzeProspectWebsite>(
       "analyze-prospect-website",
-      { prospectId: prospect.id, ownerId: owner.id, force: true },
+      { prospectId: prospect.id, ownerId: owner.id, force },
       {
         idempotencyKey,
         idempotencyKeyTTL: "5m",
@@ -276,7 +280,9 @@ export async function getProspectWebsiteAnalysisStatusAction(
     await requireOwner();
     const { data, error } = await client
       .from("website_audits")
-      .select("status,error_message,analyzed_at")
+      .select(
+        "id,prospect_id,status,progress,result_status,error_message,analyzed_at,facts,screenshot_path",
+      )
       .eq("prospect_id", prospectId)
       .gte("created_at", startedAt)
       .order("created_at", { ascending: false })

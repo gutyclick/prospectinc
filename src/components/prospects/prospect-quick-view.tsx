@@ -13,6 +13,7 @@ import Link from "next/link";
 import { SectionCard } from "@/components/ui/section-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { CommercialStatus, Prospect } from "@/lib/domain";
+import type { WebsiteAuditView } from "@/lib/services/website-audit-query";
 import {
   commercialStatusLabels,
   websiteStatusLabels,
@@ -25,6 +26,7 @@ export function ProspectQuickView({
   onExclude,
   onReanalyze,
   isAnalyzing = false,
+  audit,
 }: {
   prospect: Prospect | null;
   onSave: () => void;
@@ -32,6 +34,7 @@ export function ProspectQuickView({
   onExclude: () => void;
   onReanalyze: () => void;
   isAnalyzing?: boolean;
+  audit: WebsiteAuditView | null;
 }) {
   if (!prospect) {
     return (
@@ -183,6 +186,97 @@ export function ProspectQuickView({
         </p>
       </section>
 
+      {audit ? (
+        <section
+          className="space-y-3 border-t border-slate-100 pt-4"
+          aria-label="Auditoría técnica del sitio"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-slate-950">
+              Auditoría técnica
+            </h3>
+            <StatusBadge
+              tone={
+                audit.status === "fallida"
+                  ? "red"
+                  : audit.status === "completada"
+                    ? "green"
+                    : "orange"
+              }
+            >
+              {audit.status === "pendiente"
+                ? "En cola"
+                : audit.status === "analizando"
+                  ? `Analizando ${audit.progress}%`
+                  : audit.status}
+            </StatusBadge>
+          </div>
+          {audit.resultStatus ? (
+            <p className="text-sm text-slate-600">
+              Resultado: <strong>{audit.resultStatus}</strong>
+            </p>
+          ) : null}
+          {audit.analyzedAt ? (
+            <p className="text-xs text-slate-500">
+              Última auditoría:{" "}
+              {new Date(audit.analyzedAt).toLocaleString("es-PA")}
+            </p>
+          ) : null}
+          {audit.errorMessage ? (
+            <p role="alert" className="text-sm text-red-700">
+              {audit.errorMessage}
+            </p>
+          ) : null}
+          {audit.warnings.length > 0 ? (
+            <ul className="list-disc space-y-1 pl-5 text-sm text-amber-800">
+              {audit.warnings.map((warning) => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+          ) : null}
+          {audit.contacts.length > 0 ? (
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase">
+                Contactos verificados
+              </p>
+              {audit.contacts.map((contact) => (
+                <p
+                  key={`${contact.type}-${contact.value}`}
+                  className="mt-1 text-sm"
+                >
+                  {contact.value}
+                  {" · "}
+                  <a
+                    className="text-blue-700 underline"
+                    href={contact.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    fuente
+                  </a>
+                </p>
+              ))}
+            </div>
+          ) : null}
+          {audit.screenshotUrl ? (
+            <a
+              href={audit.screenshotUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="block"
+            >
+              {/* La URL firmada privada y efímera no es apta para el optimizador de imágenes. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={audit.screenshotUrl}
+                alt={`Captura auditada de ${prospect.businessName}`}
+                className="max-h-56 w-full rounded-xl border object-cover object-top"
+              />
+            </a>
+          ) : null}
+        </section>
+      ) : null}
+
       <div className="grid gap-2 border-t border-slate-100 pt-4 sm:grid-cols-2">
         {prospect.websiteUrl ? (
           <button
@@ -192,7 +286,13 @@ export function ProspectQuickView({
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-violet-200 px-3 text-sm font-semibold text-violet-700 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
           >
             <ScanSearch className="size-4" aria-hidden="true" />
-            {isAnalyzing ? "Análisis en curso…" : "Reanalizar sitio web"}
+            {isAnalyzing
+              ? "Análisis en curso…"
+              : audit?.status === "fallida"
+                ? "Reintentar análisis"
+                : audit?.status === "completada"
+                  ? "Reanalizar sitio web"
+                  : "Analizar sitio web"}
           </button>
         ) : null}
         <button

@@ -20,6 +20,8 @@ import {
 } from "@/lib/domain/prospect-filters";
 import { downloadProspectsCsv } from "@/lib/utils/prospect-csv";
 import type { ProspectFormValues } from "@/lib/validation";
+import type { WebsiteAuditView } from "@/lib/services/website-audit-query";
+import type { WebsiteAuditResult } from "@/lib/domain/website-audit";
 
 import { AddProspectModal } from "./add-prospect-modal";
 import { ProspectFilters } from "./prospect-filters";
@@ -32,9 +34,11 @@ import { StatusDistribution } from "./status-distribution";
 export function ProspectsView({
   initialProspects,
   initialFilters,
+  initialAudits = {},
 }: {
   initialProspects: Prospect[];
   initialFilters: ProspectFilterValues;
+  initialAudits?: Record<string, WebsiteAuditView>;
 }) {
   const [prospects, setProspects] = useState(initialProspects);
   const [filters, setFilters] = useState(initialFilters);
@@ -47,6 +51,7 @@ export function ProspectsView({
     prospectId: string;
     startedAt: string;
   } | null>(null);
+  const [audits, setAudits] = useState(initialAudits);
 
   useEffect(() => {
     if (!activeWebsiteAnalysis) return;
@@ -57,6 +62,43 @@ export function ProspectsView({
         active.startedAt,
       );
       if (!result.ok || !result.data) return;
+      const data = result.data;
+      setAudits((current) => ({
+        ...current,
+        [active.prospectId]: {
+          ...(current[active.prospectId] ?? {
+            id: data.id,
+            prospectId: active.prospectId,
+            resultStatus: null,
+            analyzedAt: null,
+            errorMessage: null,
+            facts: {},
+            warnings: [],
+            screenshotUrl: null,
+            contacts: [],
+          }),
+          status: data.status,
+          progress: data.progress,
+          resultStatus: data.result_status as WebsiteAuditResult | null,
+          analyzedAt: data.analyzed_at,
+          errorMessage: data.error_message,
+          facts:
+            data.facts &&
+            typeof data.facts === "object" &&
+            !Array.isArray(data.facts)
+              ? data.facts
+              : {},
+          warnings:
+            data.facts &&
+            typeof data.facts === "object" &&
+            !Array.isArray(data.facts) &&
+            Array.isArray(data.facts.warnings)
+              ? data.facts.warnings.filter(
+                  (item): item is string => typeof item === "string",
+                )
+              : [],
+        },
+      }));
       if (result.data.status === "completada") {
         setActiveWebsiteAnalysis(null);
         setNotification("El análisis del sitio finalizó correctamente.");
@@ -153,7 +195,19 @@ export function ProspectsView({
 
   async function reanalyzeWebsite() {
     if (!selectedProspect) return;
-    const result = await reanalyzeProspectWebsiteAction(selectedProspect.id);
+    const existing = audits[selectedProspect.id];
+    const force = existing?.status === "completada";
+    if (
+      force &&
+      !window.confirm(
+        "Ya existe una auditoría reciente. ¿Quieres volver a analizar el sitio?",
+      )
+    )
+      return;
+    const result = await reanalyzeProspectWebsiteAction(
+      selectedProspect.id,
+      force,
+    );
     if (!result.ok) {
       setNotification(result.error);
       return;
@@ -240,6 +294,9 @@ export function ProspectsView({
           onReanalyze={() => void reanalyzeWebsite()}
           isAnalyzing={
             activeWebsiteAnalysis?.prospectId === selectedProspect?.id
+          }
+          audit={
+            selectedProspect ? (audits[selectedProspect.id] ?? null) : null
           }
         />
       </div>
