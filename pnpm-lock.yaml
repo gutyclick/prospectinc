@@ -45,8 +45,8 @@ importers:
         specifier: 16.2.10
         version: 16.2.10(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       playwright:
-        specifier: ^1.61.1
-        version: 1.61.1
+        specifier: 1.40.0
+        version: 1.40.0
       react:
         specifier: 19.2.4
         version: 19.2.4
@@ -3818,14 +3818,14 @@ packages:
     resolution: {integrity: sha512-nDywThFk1i4BQK4twPQ6TA4RT8bDY96yeuCVBWL3ePARCiEKDRSrNGbFIgUJpLp+XeIR65v8ra7WuJOFUBtkMA==}
     engines: {node: '>=8'}
 
-  playwright-core@1.61.1:
-    resolution: {integrity: sha512-h7Qlt6m4REp25qvIdvbDtVmD4LqVXfpRxhORv9L0jzETM05p4fuPJ3dKyuSXQxDSbXnmS79HAgi9589lGSpLkg==}
-    engines: {node: '>=18'}
+  playwright-core@1.40.0:
+    resolution: {integrity: sha512-fvKewVJpGeca8t0ipM56jkVSU6Eo0RmFvQ/MaCQNDYm+sdvKkMBBWTE1FdeMqIdumRaXXjZChWHvIzCGM/tA/Q==}
+    engines: {node: '>=16'}
     hasBin: true
 
-  playwright@1.61.1:
-    resolution: {integrity: sha512-DWnY5o3YbLWK4GovuAVwpqL+1VwGNdUGrRr++8j8PtQQzvAVZUIMjKQ90fY689sEJZJBbZVw1rXaOKSTitkzPQ==}
-    engines: {node: '>=18'}
+  playwright@1.40.0:
+    resolution: {integrity: sha512-gyHAgQjiDf1m34Xpwzaqb76KgfzYrhK7iih+2IzcOCoZWr/8ZqmdBw+t0RU85ZmfJMgtgAiNtBQ/KS2325INXw==}
+    engines: {node: '>=16'}
     hasBin: true
 
   possible-typed-array-names@1.1.0:
@@ -8534,11 +8534,11 @@ snapshots:
     dependencies:
       find-up: 3.0.0
 
-  playwright-core@1.61.1: {}
+  playwright-core@1.40.0: {}
 
-  playwright@1.61.1:
+  playwright@1.40.0:
     dependencies:
-      playwright-core: 1.61.1
+      playwright-core: 1.40.0
     optionalDependencies:
       fsevents: 2.3.2
 
