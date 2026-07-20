@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(10);
+select plan(12);
 
 insert into auth.users (id, email) values ('00000000-0000-4000-8000-000000000099', 'repository@example.test');
 set local role authenticated;
@@ -23,6 +23,12 @@ select is((select count(*) from public.messages where conversation_id = '3000000
 
 insert into public.searches (id, owner_id, query, location, country, result_limit, sources, status)
 values ('40000000-0000-4000-8000-000000000099', auth.uid(), 'Dentistas', 'Panamá', 'Panamá', 20, array['google-places'], 'analizando');
+select is((select progress from public.searches where id = '40000000-0000-4000-8000-000000000099'), 0::smallint, 'la búsqueda comienza sin progreso inventado');
+update public.searches set query_fingerprint = 'fingerprint-activo' where id = '40000000-0000-4000-8000-000000000099';
+select throws_ok(
+  $$insert into public.searches (owner_id, query, location, result_limit, sources, status, query_fingerprint) values (auth.uid(), 'Dentistas', 'Panamá', 20, array['google-places'], 'pendiente', 'fingerprint-activo')$$,
+  'una huella activa evita ejecuciones duplicadas'
+);
 select lives_ok(
   $$select public.persist_discovery_results('40000000-0000-4000-8000-000000000099', '[{"placeId":"place-real-1","displayName":"Clínica Real","formattedAddress":"Panamá","primaryType":"dentist","latitude":8.98,"longitude":-79.52,"websiteUrl":null,"phone":"+507 200-0000","sourceUrl":"https://maps.google.com/?cid=real-1","rating":4.5,"reviewsCount":10}]'::jsonb)$$,
   'la persistencia de descubrimiento es transaccional'

@@ -619,11 +619,14 @@ export type Database = {
           opportunities_count: number;
           opportunity_filter: string | null;
           owner_id: string;
+          processing_stage: string;
+          progress: number;
           provider_call_count: number;
           query: string;
           query_fingerprint: string | null;
           result_limit: number;
           results_count: number;
+          retry_count: number;
           sources: string[];
           started_at: string | null;
           status: Database["public"]["Enums"]["search_status"];
@@ -642,11 +645,14 @@ export type Database = {
           opportunities_count?: number;
           opportunity_filter?: string | null;
           owner_id: string;
+          processing_stage?: string;
+          progress?: number;
           provider_call_count?: number;
           query: string;
           query_fingerprint?: string | null;
           result_limit: number;
           results_count?: number;
+          retry_count?: number;
           sources: string[];
           started_at?: string | null;
           status?: Database["public"]["Enums"]["search_status"];
@@ -665,11 +671,14 @@ export type Database = {
           opportunities_count?: number;
           opportunity_filter?: string | null;
           owner_id?: string;
+          processing_stage?: string;
+          progress?: number;
           provider_call_count?: number;
           query?: string;
           query_fingerprint?: string | null;
           result_limit?: number;
           results_count?: number;
+          retry_count?: number;
           sources?: string[];
           started_at?: string | null;
           status?: Database["public"]["Enums"]["search_status"];
@@ -777,6 +786,14 @@ export type Database = {
       };
       persist_discovery_results: {
         Args: { discovered: Json; search_record_id: string };
+        Returns: Json;
+      };
+      persist_discovery_results_for_owner: {
+        Args: {
+          discovered: Json;
+          expected_owner_id: string;
+          search_record_id: string;
+        };
         Returns: Json;
       };
       transition_conversation: {

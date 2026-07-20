@@ -105,6 +105,20 @@ export const searchSchema = z
     insertedCount: z.number().int().nonnegative().optional().default(0),
     deduplicatedCount: z.number().int().nonnegative().optional().default(0),
     providerCallCount: z.number().int().nonnegative().optional().default(0),
+    progress: z.number().int().min(0).max(100).optional().default(0),
+    processingStage: z
+      .enum([
+        "pendiente",
+        "descubriendo",
+        "guardando",
+        "preparando",
+        "finalizado",
+        "fallido",
+      ])
+      .optional()
+      .default("pendiente"),
+    externalRunId: z.string().nullable().optional(),
+    retryCount: z.number().int().nonnegative().optional().default(0),
     errorMessage: z.string().nullable().optional(),
     createdAt: isoDateSchema,
   })

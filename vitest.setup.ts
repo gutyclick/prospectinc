@@ -4,6 +4,9 @@ import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+vi.mock("@trigger.dev/react-hooks", () => ({
+  useRealtimeRun: () => ({ run: undefined, error: undefined, stop: vi.fn() }),
+}));
 
 vi.mock("@/app/actions/data", async () => {
   const repositories = await import("@/lib/repositories");
@@ -21,25 +24,49 @@ vi.mock("@/app/actions/data", async () => {
     discoverBusinessesAction: async (
       values: Parameters<typeof repositories.searchRepository.createSearch>[0],
     ) => {
-      await new Promise((resolve) => setTimeout(resolve, 75));
-      const created = await repositories.searchRepository.createSearch(values);
-      const search = await repositories.searchRepository.completeSearch(
-        created.id,
-      );
+        const created = await repositories.searchRepository.createSearch(values);
+        window.setTimeout(() => {
+          void repositories.searchRepository.completeSearch(created.id).catch(() => {
+            // Otra prueba puede haber restablecido el repositorio antes del temporizador.
+          });
+      }, 75);
       return {
         ok: true,
         data: {
           search: {
-            ...search,
-            insertedCount: search.resultsCount,
-            providerCallCount: 1,
+            ...created,
+            progress: 15,
+            processingStage: "descubriendo",
+            externalRunId: "run-test",
           },
-          inserted: search.resultsCount,
-          deduplicated: 0,
-          providerCalls: 1,
+          runId: "run-test",
+          publicAccessToken: "token-test",
         },
       };
     },
+    getSearchStatusAction: async (id: string) => {
+      const search = (await repositories.searchRepository.getAll()).find(
+        (item) => item.id === id,
+      );
+        return search
+          ? {
+              ok: true,
+              data:
+                search.status === "analizando"
+                  ? {
+                      ...search,
+                      progress: 15,
+                      processingStage: "descubriendo" as const,
+                      externalRunId: "run-test",
+                    }
+                  : search,
+            }
+        : { ok: false, error: "No existe" };
+    },
+    retryDiscoveryAction: async () => ({
+      ok: false,
+      error: "No disponible en esta prueba",
+    }),
     createProspectAction: async (
       values: Parameters<
         typeof repositories.prospectRepository.createProspect

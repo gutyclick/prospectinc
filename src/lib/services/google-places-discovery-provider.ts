@@ -105,6 +105,9 @@ export class GooglePlacesDiscoveryProvider implements BusinessDiscoveryProvider 
 
     for (let attempt = 1; attempt <= this.maxAttempts; attempt += 1) {
       const controller = new AbortController();
+      const signal = input.signal
+        ? AbortSignal.any([controller.signal, input.signal])
+        : controller.signal;
       const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
       try {
         const response = await this.fetcher(ENDPOINT, {
@@ -119,7 +122,7 @@ export class GooglePlacesDiscoveryProvider implements BusinessDiscoveryProvider 
             languageCode: "es",
             pageSize: input.limit,
           }),
-          signal: controller.signal,
+          signal,
         });
         if (response.status === 401 || response.status === 403) {
           throw new BusinessDiscoveryError(
@@ -165,7 +168,7 @@ export class GooglePlacesDiscoveryProvider implements BusinessDiscoveryProvider 
       } catch (error) {
         if (error instanceof BusinessDiscoveryError) throw error;
         if (
-          controller.signal.aborted ||
+          signal.aborted ||
           (error instanceof Error && error.name === "AbortError")
         ) {
           throw new BusinessDiscoveryError(

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -42,14 +42,7 @@ describe("flujo de búsquedas reales", () => {
     await completeForm(user);
 
     const progressbar = await screen.findByRole("progressbar");
-    expect(
-      Number(progressbar.getAttribute("aria-valuenow")),
-    ).toBeGreaterThanOrEqual(25);
-    await waitFor(() => {
-      expect(
-        Number(progressbar.getAttribute("aria-valuenow")),
-      ).toBeGreaterThanOrEqual(50);
-    });
+    expect(Number(progressbar.getAttribute("aria-valuenow"))).toBe(15);
     expect(await screen.findByText(/Búsqueda completada:/)).toBeInTheDocument();
   });
 
@@ -62,7 +55,7 @@ describe("flujo de búsquedas reales", () => {
     expect(await screen.findByText(/Búsqueda completada:/)).toBeInTheDocument();
     expect(screen.getAllByText("Veterinarias")).not.toHaveLength(0);
     expect(
-      screen.getByText(/Se completó la búsqueda de Veterinarias/),
+      screen.getByRole("link", { name: "Abrir prospectos encontrados" }),
     ).toBeInTheDocument();
   });
 

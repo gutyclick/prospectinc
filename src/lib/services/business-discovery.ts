@@ -3,6 +3,7 @@ export type BusinessSearchInput = {
   location: string;
   country?: string;
   limit: number;
+  signal?: AbortSignal;
 };
 
 export type DiscoveredBusiness = {

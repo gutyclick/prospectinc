@@ -21,7 +21,9 @@
     "supabase:lint": "supabase db lint --local --level error",
     "supabase:types": "node scripts/generate-supabase-types.mjs",
     "supabase:types:linked": "node scripts/generate-supabase-types.mjs --linked",
-    "demo:import": "node --env-file-if-exists=.env.local scripts/import-demo-data.mjs"
+    "demo:import": "node --env-file-if-exists=.env.local scripts/import-demo-data.mjs",
+    "trigger:dev": "trigger dev",
+    "trigger:deploy": "trigger deploy"
   },
   "packageManager": "pnpm@11.15.0",
   "dependencies": {
@@ -29,6 +31,8 @@
     "@hookform/resolvers": "^5.4.0",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.7",
+    "@trigger.dev/react-hooks": "^4.5.4",
+    "@trigger.dev/sdk": "^4.5.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
@@ -59,6 +63,7 @@
     "prettier-plugin-tailwindcss": "^0.8.1",
     "supabase": "^2.109.1",
     "tailwindcss": "^4",
+    "trigger.dev": "^4.5.4",
     "typescript": "^5",
     "vitest": "^4.1.10"
   }

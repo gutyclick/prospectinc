@@ -9,9 +9,15 @@ import { Search } from "lucide-react";
 
 type SearchHistoryTableProps = {
   searches: SearchRecord[];
+  onRetry?: (id: string) => void;
+  retryingId?: string | null;
 };
 
-export function SearchHistoryTable({ searches }: SearchHistoryTableProps) {
+export function SearchHistoryTable({
+  searches,
+  onRetry,
+  retryingId,
+}: SearchHistoryTableProps) {
   if (searches.length === 0) {
     return (
       <EmptyState
@@ -39,6 +45,7 @@ export function SearchHistoryTable({ searches }: SearchHistoryTableProps) {
               "Nuevos / deduplicados",
               "Operaciones",
               "Estado",
+              "Acción",
             ].map((heading) => (
               <th key={heading} scope="col" className="px-4 py-3">
                 {heading}
@@ -93,6 +100,18 @@ export function SearchHistoryTable({ searches }: SearchHistoryTableProps) {
                   <p className="mt-1 max-w-56 text-xs text-red-700">
                     {search.errorMessage}
                   </p>
+                ) : null}
+              </td>
+              <td className="px-4 py-3">
+                {search.status === "fallida" && onRetry ? (
+                  <button
+                    type="button"
+                    disabled={retryingId === search.id}
+                    onClick={() => onRetry(search.id)}
+                    className="min-h-9 rounded-lg border border-blue-200 px-3 text-xs font-semibold text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-60"
+                  >
+                    {retryingId === search.id ? "Reintentando…" : "Reintentar"}
+                  </button>
                 ) : null}
               </td>
             </tr>

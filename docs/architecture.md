@@ -162,6 +162,17 @@ Cada integración se implementará como adaptador detrás de una interfaz propia
 
 Las decisiones estructurales relevantes se documentarán aquí o mediante registros de decisión si crece su complejidad. Cualquier cambio en límites de módulos, persistencia, integraciones o estrategia de estado exige actualizar esta documentación en el mismo cambio.
 
+## Procesamiento en segundo plano con Trigger.dev
+
+Las búsquedas reales se encolan desde una Server Action y se ejecutan en `discover-businesses`. PostgreSQL conserva el estado, la etapa y el progreso; el tiempo real de Trigger acelera la interfaz, pero no sustituye a la base de datos como fuente de verdad. El identificador externo se persiste para recuperar una ejecución después de recargar la página.
+
+- Las tareas verifican `ownerId` en el servidor y usan un cliente `service_role` aislado en módulos `server-only`.
+- Las claves idempotentes y el índice parcial de búsquedas activas evitan ejecuciones duplicadas.
+- `analyze-search-prospects` selecciona prospectos por lote y omite sitios inexistentes o auditados recientemente.
+- `analyze-prospect-website` es un esqueleto seguro y no abre un navegador todavía.
+- Las colas limitan la concurrencia y los errores permanentes no se reintentan; los transitorios usan backoff.
+- Los tokens públicos entregados al cliente quedan limitados a una ejecución y solo sirven para observarla.
+
 ## Descubrimiento real con Google Places
 
 `BusinessDiscoveryProvider` delimita el proveedor externo. `GooglePlacesDiscoveryProvider` ejecuta exclusivamente Text Search (New) desde el servidor mediante POST, idioma español, un FieldMask explícito y un máximo de 20 resultados. No solicita fotografías, reseñas completas ni Place Details.

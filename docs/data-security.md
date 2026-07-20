@@ -89,6 +89,14 @@ Los logs pueden incluir identificadores internos no adivinables, proveedor, oper
 - Antes de producción se definirán periodos de retención, proceso de eliminación y respuesta ante incidentes.
 - La rotación de `TOKEN_ENCRYPTION_KEY` requiere versionado de cifrado y una migración segura; nunca se sustituye sin plan de recifrado.
 
+## Ejecución segura en Trigger.dev
+
+- Los secretos se configuran directamente por entorno en Trigger.dev y nunca forman parte del payload.
+- `SUPABASE_SERVICE_ROLE_KEY` solo se importa desde módulos `server-only` ejecutados en tareas autorizadas.
+- Cada tarea vuelve a verificar el propietario contra `APP_OWNER_EMAIL` antes de leer o escribir datos.
+- El navegador recibe únicamente un token público limitado a observar una ejecución concreta.
+- Los logs estructurados contienen identificadores internos, etapas y contadores; excluyen claves, contactos y respuestas completas de proveedores.
+
 ## Riesgos prioritarios
 
 1. Exponer una credencial privilegiada por una importación cliente accidental.

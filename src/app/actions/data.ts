@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { idempotencyKeys, tasks } from "@trigger.dev/sdk";
 
 import type {
   CommercialStatus,
@@ -12,10 +13,12 @@ import { getRepositories, RepositoryError } from "@/lib/repositories";
 import { requireOwner } from "@/lib/auth/require-owner";
 import { createClient } from "@/lib/supabase/server";
 import {
-  BusinessDiscoveryService,
+  assertSearchCanRun,
+  getSearchFingerprint,
   RepeatedBusinessSearchError,
 } from "@/lib/services/business-discovery-service";
-import { GooglePlacesDiscoveryProvider } from "@/lib/services/google-places-discovery-provider";
+import { mapSearch } from "@/lib/repositories/supabase/mappers";
+import type { discoverBusinesses } from "@/trigger/discover-businesses";
 import {
   proposalFormSchema,
   prospectFormSchema,
@@ -74,22 +77,92 @@ export async function discoverBusinessesAction(input: unknown) {
       .extend({ confirmRepeated: z.boolean().optional().default(false) })
       .parse(input);
     const [client, owner] = await Promise.all([createClient(), requireOwner()]);
-    const result = await new BusinessDiscoveryService(
-      client,
-      owner.id,
-      new GooglePlacesDiscoveryProvider(),
-    ).run({
+    const providerInput = {
       niche: values.query,
       location: values.location,
       country: values.country,
       limit: values.resultLimit,
-      sources: ["google-places"],
-      confirmRepeated: values.confirmRepeated,
-    });
+    };
+    const queryFingerprint = getSearchFingerprint(providerInput);
+    if (!values.confirmRepeated) {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { count, error } = await client
+        .from("searches")
+        .select("id", { count: "exact", head: true })
+        .eq("query_fingerprint", queryFingerprint)
+        .gte("created_at", since);
+      if (error) throw new Error("No se pudo comprobar la búsqueda reciente.");
+      assertSearchCanRun(count ?? 0, false);
+    }
+    const { data: created, error: createError } = await client
+      .from("searches")
+      .insert({
+        owner_id: owner.id,
+        query: values.query,
+        location: values.location,
+        country: values.country?.trim() || null,
+        query_fingerprint: queryFingerprint,
+        result_limit: values.resultLimit,
+        sources: ["google-places"],
+        status: "pendiente",
+        processing_stage: "pendiente",
+        progress: 0,
+      })
+      .select()
+      .single();
+    if (createError) {
+      if (createError.code === "23505") {
+        throw new Error("Ya existe una ejecución activa para esta búsqueda.");
+      }
+      throw new Error("No se pudo registrar la búsqueda.");
+    }
+    const idempotencyKey = await idempotencyKeys.create(
+      `discovery:${created.id}:0`,
+      { scope: "global" },
+    );
+    let handle;
+    try {
+      handle = await tasks.trigger<typeof discoverBusinesses>(
+        "discover-businesses",
+        { searchId: created.id, ownerId: owner.id },
+        {
+          idempotencyKey,
+          idempotencyKeyTTL: "24h",
+          tags: [`search:${created.id}`, `owner:${owner.id}`],
+          metadata: {
+            searchId: created.id,
+            ownerId: owner.id,
+            stage: "pendiente",
+            progress: 0,
+          },
+        },
+      );
+    } catch {
+      await client
+        .from("searches")
+        .update({
+          status: "fallida",
+          processing_stage: "fallido",
+          progress: 100,
+          error_message: "No se pudo encolar la tarea en segundo plano.",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", created.id);
+      throw new Error("No se pudo encolar la búsqueda. Intenta nuevamente.");
+    }
+    await client
+      .from("searches")
+      .update({ external_run_id: handle.id })
+      .eq("id", created.id);
     revalidatePath("/busquedas");
-    revalidatePath("/prospectos");
-    revalidatePath("/");
-    return { ok: true, data: result } as const;
+    return {
+      ok: true,
+      data: {
+        search: mapSearch({ ...created, external_run_id: handle.id }),
+        runId: handle.id,
+        publicAccessToken: handle.publicAccessToken,
+      },
+    } as const;
   } catch (error) {
     return {
       ok: false,
@@ -100,6 +173,99 @@ export async function discoverBusinessesAction(input: unknown) {
       requiresConfirmation: error instanceof RepeatedBusinessSearchError,
     } as const;
   }
+}
+
+export async function getSearchStatusAction(id: unknown) {
+  return execute(async () => {
+    const searchId = z.string().uuid().parse(id);
+    const client = await createClient();
+    await requireOwner();
+    const { data, error } = await client
+      .from("searches")
+      .select()
+      .eq("id", searchId)
+      .single();
+    if (error || !data)
+      throw new RepositoryError("La búsqueda no existe.", "not-found");
+    return mapSearch(data);
+  });
+}
+
+export async function retryDiscoveryAction(id: unknown) {
+  return execute(async () => {
+    const searchId = z.string().uuid().parse(id);
+    const [client, owner] = await Promise.all([createClient(), requireOwner()]);
+    const { data: search, error } = await client
+      .from("searches")
+      .select()
+      .eq("id", searchId)
+      .eq("status", "fallida")
+      .single();
+    if (error || !search)
+      throw new RepositoryError("La búsqueda fallida no existe.", "not-found");
+    const retryCount = search.retry_count + 1;
+    const { data: reset, error: resetError } = await client
+      .from("searches")
+      .update({
+        status: "pendiente",
+        processing_stage: "pendiente",
+        progress: 0,
+        error_message: null,
+        completed_at: null,
+        retry_count: retryCount,
+        external_run_id: null,
+      })
+      .eq("id", search.id)
+      .eq("status", "fallida")
+      .select()
+      .single();
+    if (resetError || !reset)
+      throw new RepositoryError("No se pudo preparar el reintento.");
+    const idempotencyKey = await idempotencyKeys.create(
+      `discovery:${search.id}:${retryCount}`,
+      { scope: "global" },
+    );
+    let handle;
+    try {
+      handle = await tasks.trigger<typeof discoverBusinesses>(
+        "discover-businesses",
+        { searchId: search.id, ownerId: owner.id },
+        {
+          idempotencyKey,
+          idempotencyKeyTTL: "24h",
+          tags: [`search:${search.id}`, `owner:${owner.id}`],
+        },
+      );
+    } catch {
+      await client
+        .from("searches")
+        .update({
+          status: "fallida",
+          processing_stage: "fallido",
+          progress: 100,
+          error_message: "No se pudo volver a encolar la tarea.",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", search.id);
+      throw new RepositoryError("No se pudo reintentar la búsqueda.");
+    }
+    const { data: updated, error: updateError } = await client
+      .from("searches")
+      .update({
+        external_run_id: handle.id,
+      })
+      .eq("id", search.id)
+      .select()
+      .single();
+    if (updateError)
+      throw new RepositoryError("No se pudo reintentar la búsqueda.");
+    revalidatePath("/busquedas");
+    return {
+      search: mapSearch(updated),
+      runId: handle.id,
+      publicAccessToken: handle.publicAccessToken,
+    };
+  });
 }
 
 export async function createProspectAction(input: unknown) {

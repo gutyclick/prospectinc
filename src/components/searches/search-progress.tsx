@@ -1,18 +1,34 @@
 import { Check, LoaderCircle } from "lucide-react";
 
 export const SEARCH_STAGES = [
-  "Buscando negocios",
-  "Revisando presencia digital",
-  "Detectando contactos",
-  "Calculando oportunidad",
+  "Descubriendo negocios",
+  "Guardando resultados",
+  "Preparando análisis",
+  "Finalizado",
 ] as const;
 
 type SearchProgressProps = {
-  activeStage: number;
+  stage:
+    | "pendiente"
+    | "descubriendo"
+    | "guardando"
+    | "preparando"
+    | "finalizado"
+    | "fallido";
+  progress: number;
 };
 
-export function SearchProgress({ activeStage }: SearchProgressProps) {
-  const progress = Math.round(((activeStage + 1) / SEARCH_STAGES.length) * 100);
+const stageIndex = {
+  pendiente: 0,
+  descubriendo: 0,
+  guardando: 1,
+  preparando: 2,
+  finalizado: 3,
+  fallido: 3,
+} as const;
+
+export function SearchProgress({ stage, progress }: SearchProgressProps) {
+  const activeStage = stageIndex[stage];
 
   return (
     <section
@@ -22,7 +38,7 @@ export function SearchProgress({ activeStage }: SearchProgressProps) {
     >
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm font-semibold text-blue-950">
-          {SEARCH_STAGES[activeStage]}
+          {stage === "fallido" ? "La tarea falló" : SEARCH_STAGES[activeStage]}
         </p>
         <span className="text-xs font-semibold text-blue-700">{progress}%</span>
       </div>

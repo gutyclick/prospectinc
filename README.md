@@ -46,6 +46,8 @@ pnpm supabase:test    # Ejecutar pruebas pgTAP
 pnpm supabase:lint    # Revisar funciones y esquema PostgreSQL
 pnpm supabase:types   # Regenerar tipos TypeScript desde la DB local
 pnpm demo:import      # Importar datos demo tras autenticar al propietario
+pnpm trigger:dev      # Ejecutar tareas Trigger.dev en desarrollo
+pnpm trigger:deploy   # Desplegar tareas al proyecto configurado
 ```
 
 ## Estructura
@@ -71,10 +73,14 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<clave publicable mostrada por supabase sta
 APP_OWNER_EMAIL=<correo exacto del usuario creado en Auth>
 DATA_PROVIDER=supabase
 GOOGLE_PLACES_API_KEY=<clave restringida a Places API (New)>
+TRIGGER_SECRET_KEY=<clave secreta del entorno de Trigger.dev>
+TRIGGER_PROJECT_REF=<referencia proj_... del proyecto Trigger.dev>
 ```
 
 No uses `SUPABASE_SERVICE_ROLE_KEY` en el navegador. La aplicación valida `APP_OWNER_EMAIL` en Proxy, en las rutas protegidas y durante el inicio de sesión.
 
 `GOOGLE_PLACES_API_KEY` también es exclusivamente de servidor. Restringe esa clave en Google Cloud a Places API (New) y a los entornos autorizados.
+
+Configura `TRIGGER_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `APP_OWNER_EMAIL` y `GOOGLE_PLACES_API_KEY` también en el entorno correspondiente de Trigger.dev. Nunca los envíes desde el navegador. `trigger.config.ts` toma la referencia desde `TRIGGER_PROJECT_REF`.
 
 Consulta [docs/supabase.md](docs/supabase.md) para preparar el entorno, crear el propietario y vincular un proyecto remoto.

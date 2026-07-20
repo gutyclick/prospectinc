@@ -63,12 +63,16 @@ Encola una operación tipada con identificador de propietario, recurso e idempot
 ## Orden de incorporación
 
 1. Supabase, autenticación, RLS y adaptadores de repositorio (completado).
-2. Trigger.dev y Google Places para descubrimiento controlado.
+2. Trigger.dev y Google Places para descubrimiento controlado (completado).
 3. Analizador de páginas y OpenAI para resultados revisables.
 4. Google OAuth y Gmail para crear borradores.
 5. Enlaces manuales de WhatsApp con contactos previamente verificados.
 
 Cada paso conserva el adaptador simulado hasta superar pruebas de contrato, integración y regresión visual.
+
+## Estado de Trigger.dev
+
+Trigger.dev ejecuta el descubrimiento y prepara los análisis en segundo plano. Usa claves idempotentes, colas con concurrencia limitada, reintentos selectivos y progreso persistido. Playwright, OpenAI, Gmail y WhatsApp permanecen sin integrar.
 
 ## Exclusiones permanentes o actuales
 
