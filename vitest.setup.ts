@@ -69,18 +69,18 @@ vi.mock("@/app/actions/data", async () => {
       ok: false,
       error: "No disponible en esta prueba",
     }),
-      reanalyzeProspectWebsiteAction: async () => ({
-        ok: true,
-        data: {
-          runId: "website-run-test",
-          publicAccessToken: "token-test",
-          startedAt: new Date().toISOString(),
-        },
-      }),
-      getProspectWebsiteAnalysisStatusAction: async () => ({
-        ok: true,
-        data: null,
-      }),
+    reanalyzeProspectWebsiteAction: async () => ({
+      ok: true,
+      data: {
+        runId: "website-run-test",
+        publicAccessToken: "token-test",
+        startedAt: new Date().toISOString(),
+      },
+    }),
+    getProspectWebsiteAnalysisStatusAction: async () => ({
+      ok: true,
+      data: null,
+    }),
     createProspectAction: async (
       values: Parameters<
         typeof repositories.prospectRepository.createProspect
