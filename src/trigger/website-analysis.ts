@@ -64,6 +64,7 @@ export const analyzeProspectWebsite = task({
         owner_id: payload.data.ownerId,
         prospect_id: prospect.id,
         status: "analizando",
+        initial_url: prospect.website_url,
         final_url: prospect.website_url,
         facts: { source: "trigger-playwright", runId: ctx.run.id },
       })
@@ -113,6 +114,10 @@ export const analyzeProspectWebsite = task({
               value: contact.value,
               normalized_value: contact.normalizedValue,
               source_url: contact.sourceUrl,
+              source_type:
+                contact.type === "instagram" || contact.type === "facebook"
+                  ? "social"
+                  : "website",
               is_public: true,
               confidence: 1,
               verification_status: "verificado",
@@ -140,10 +145,13 @@ export const analyzeProspectWebsite = task({
           http_status: analysis.httpStatus,
           uses_https: analysis.finalUrl.startsWith("https:"),
           has_viewport: analysis.facts.hasMobileViewport,
+          has_mobile_viewport: analysis.facts.hasMobileViewport,
           has_contact_form: analysis.facts.hasContactForm,
           has_whatsapp: analysis.facts.hasWhatsapp,
           has_booking: analysis.facts.hasBooking,
           has_social_links: analysis.facts.socialLinks.length > 0,
+          has_services_content: analysis.facts.hasServicesContent,
+          has_meta_description: analysis.facts.hasMetaDescription,
           title: analysis.facts.title,
           meta_description: analysis.facts.metaDescription,
           copyright_year: copyrightYear ? Number(copyrightYear) : null,

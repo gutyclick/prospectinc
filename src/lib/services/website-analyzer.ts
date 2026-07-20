@@ -84,7 +84,9 @@ export async function analyzeWebsite(
           hasContactForm: facts.hasContactForm || contactFacts.hasContactForm,
           hasWhatsapp: facts.hasWhatsapp || contactFacts.hasWhatsapp,
           hasBooking: facts.hasBooking || contactFacts.hasBooking,
-          socialLinks: [...new Set([...facts.socialLinks, ...contactFacts.socialLinks])],
+          socialLinks: [
+            ...new Set([...facts.socialLinks, ...contactFacts.socialLinks]),
+          ],
           contacts: [...facts.contacts, ...contactFacts.contacts].filter(
             (contact, index, all) =>
               all.findIndex(

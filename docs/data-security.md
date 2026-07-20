@@ -44,6 +44,8 @@ Ningún secreto puede llevar el prefijo `NEXT_PUBLIC_`. `.env.example` contiene 
 - Una validación rechaza cualquier contacto sin procedencia; las importaciones mantienen esta misma regla.
 - La IA no es fuente de contactos y nunca puede sobrescribir evidencia obtenida de una fuente pública.
 - Se debe poder corregir, descartar o eliminar un contacto sin destruir el historial comercial no sensible que legalmente corresponda conservar.
+- `source_type` clasifica la procedencia sin sustituir `source_url`; la URL comprobable continúa siendo obligatoria.
+- Los payloads temporales de Google Places permanecen en una tabla con RLS y vencimiento, no en registros permanentes de contacto o auditoría.
 
 ## Autenticación y autorización
 

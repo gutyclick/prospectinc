@@ -86,4 +86,12 @@ Supabase y Google Places API (New) son las integraciones activas. Las pantallas 
 
 ## Estado de Google Places
 
-Google Places API (New) está activa exclusivamente mediante Text Search. Utiliza clave de servidor, FieldMask limitado, timeout y reintentos acotados para 429 y 5xx. No se usa scraping, Place Details, fotografías ni reseñas completas. Trigger.dev, Playwright, OpenAI, Gmail y WhatsApp permanecen sin integrar.
+Google Places API (New) está activa exclusivamente mediante Text Search. Utiliza clave de servidor, FieldMask limitado, timeout y reintentos acotados para 429 y 5xx. No se usa scraping, Place Details, fotografías ni reseñas completas. Trigger.dev y Playwright están activos; OpenAI, Gmail y WhatsApp permanecen sin integrar.
+
+### Caché, atribución y retención de Places
+
+- `place_discovery_cache` conserva temporalmente la respuesta normalizada durante 24 horas y nunca actúa como archivo histórico del proveedor.
+- Cada entrada mantiene `google_place_id`, búsqueda, propietario, fuente y caducidad explícita.
+- Las tareas eliminan entradas vencidas antes de escribir y existe una función RLS para limpieza manual por propietario.
+- Solo pasan a `prospects` los campos del modelo permitidos por el flujo de descubrimiento; los contactos mantienen su fuente atribuible.
+- La interfaz debe conservar los enlaces atribuibles de Google cuando muestre información procedente de Places y respetar en todo momento las condiciones vigentes del proveedor.

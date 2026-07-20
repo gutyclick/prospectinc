@@ -238,7 +238,9 @@ export function ProspectsView({
           onStatusChange={(status) => void changeStatus(status)}
           onExclude={() => void excludePrimaryContact()}
           onReanalyze={() => void reanalyzeWebsite()}
-          isAnalyzing={activeWebsiteAnalysis?.prospectId === selectedProspect?.id}
+          isAnalyzing={
+            activeWebsiteAnalysis?.prospectId === selectedProspect?.id
+          }
         />
       </div>
 

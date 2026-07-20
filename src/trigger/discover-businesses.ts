@@ -81,6 +81,33 @@ export const discoverBusinesses = task({
         .set("progress", 55)
         .set("resultCount", unique.length);
 
+      const now = new Date();
+      await client
+        .from("place_discovery_cache")
+        .delete()
+        .eq("owner_id", ownerId)
+        .lte("expires_at", now.toISOString());
+      if (unique.length > 0) {
+        const expiresAt = new Date(
+          now.getTime() + 24 * 60 * 60 * 1_000,
+        ).toISOString();
+        const { error: cacheError } = await client
+          .from("place_discovery_cache")
+          .upsert(
+            unique.map((business) => ({
+              owner_id: ownerId,
+              search_id: searchId,
+              google_place_id: business.placeId,
+              payload: business as unknown as Json,
+              source: "google_places",
+              expires_at: expiresAt,
+            })),
+            { onConflict: "search_id,google_place_id" },
+          );
+        if (cacheError)
+          throw new Error("No se pudo preparar la caché temporal.");
+      }
+
       const { data: counters, error: persistError } = await client.rpc(
         "persist_discovery_results_for_owner",
         {

@@ -140,6 +140,8 @@ Cada integración se implementará como adaptador detrás de una interfaz propia
 - Prospectos y contactos se cargan por lotes; Bandeja agrupa conversaciones, mensajes, prospectos y contactos sin N+1.
 - Las operaciones que modifican varias tablas usan RPC PostgreSQL transaccionales.
 - Filtros, segmentos, embudos y CSV operan sobre datos reales recibidos desde el servidor.
+- El esquema conserva los nombres de dominio ya usados por la interfaz y expone alias generados como `qualified_count` y `official_website_url` para evolucionar sin duplicar fuentes de verdad.
+- `place_discovery_cache` separa el material temporal del proveedor de los campos permanentes de prospectos y aplica caducidad explícita.
 
 ## Seguridad y privacidad
 

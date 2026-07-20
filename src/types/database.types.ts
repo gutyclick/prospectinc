@@ -153,6 +153,7 @@ export type Database = {
           normalized_value: string;
           owner_id: string;
           prospect_id: string;
+          source_type: string;
           source_url: string;
           type: Database["public"]["Enums"]["contact_point_type"];
           value: string;
@@ -169,6 +170,7 @@ export type Database = {
           normalized_value: string;
           owner_id: string;
           prospect_id: string;
+          source_type?: string;
           source_url: string;
           type: Database["public"]["Enums"]["contact_point_type"];
           value: string;
@@ -185,6 +187,7 @@ export type Database = {
           normalized_value?: string;
           owner_id?: string;
           prospect_id?: string;
+          source_type?: string;
           source_url?: string;
           type?: Database["public"]["Enums"]["contact_point_type"];
           value?: string;
@@ -407,12 +410,61 @@ export type Database = {
           },
         ];
       };
+      place_discovery_cache: {
+        Row: {
+          created_at: string;
+          expires_at: string;
+          google_place_id: string;
+          id: string;
+          owner_id: string;
+          payload: Json;
+          search_id: string;
+          source: string;
+        };
+        Insert: {
+          created_at?: string;
+          expires_at: string;
+          google_place_id: string;
+          id?: string;
+          owner_id: string;
+          payload: Json;
+          search_id: string;
+          source?: string;
+        };
+        Update: {
+          created_at?: string;
+          expires_at?: string;
+          google_place_id?: string;
+          id?: string;
+          owner_id?: string;
+          payload?: Json;
+          search_id?: string;
+          source?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "place_discovery_cache_search_id_fkey";
+            columns: ["search_id"];
+            isOneToOne: false;
+            referencedRelation: "searches";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "place_discovery_cache_search_owner_fk";
+            columns: ["owner_id", "search_id"];
+            isOneToOne: false;
+            referencedRelation: "searches";
+            referencedColumns: ["owner_id", "id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           created_at: string;
           email: string;
           full_name: string | null;
           id: string;
+          timezone: string;
           updated_at: string;
         };
         Insert: {
@@ -420,6 +472,7 @@ export type Database = {
           email: string;
           full_name?: string | null;
           id: string;
+          timezone?: string;
           updated_at?: string;
         };
         Update: {
@@ -427,6 +480,7 @@ export type Database = {
           email?: string;
           full_name?: string | null;
           id?: string;
+          timezone?: string;
           updated_at?: string;
         };
         Relationships: [];
@@ -438,8 +492,11 @@ export type Database = {
           created_at: string;
           currency: string;
           delivery_time: string;
+          email_body: string | null;
+          email_subject: string | null;
           gmail_draft_id: string | null;
           gmail_thread_id: string | null;
+          headline: string | null;
           id: string;
           included_items: string[];
           owner_id: string;
@@ -451,6 +508,7 @@ export type Database = {
           status: Database["public"]["Enums"]["proposal_status"];
           summary: string;
           updated_at: string;
+          whatsapp_message: string | null;
         };
         Insert: {
           accepted_at?: string | null;
@@ -458,8 +516,11 @@ export type Database = {
           created_at?: string;
           currency?: string;
           delivery_time: string;
+          email_body?: string | null;
+          email_subject?: string | null;
           gmail_draft_id?: string | null;
           gmail_thread_id?: string | null;
+          headline?: string | null;
           id?: string;
           included_items: string[];
           owner_id: string;
@@ -471,6 +532,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["proposal_status"];
           summary: string;
           updated_at?: string;
+          whatsapp_message?: string | null;
         };
         Update: {
           accepted_at?: string | null;
@@ -478,8 +540,11 @@ export type Database = {
           created_at?: string;
           currency?: string;
           delivery_time?: string;
+          email_body?: string | null;
+          email_subject?: string | null;
           gmail_draft_id?: string | null;
           gmail_thread_id?: string | null;
+          headline?: string | null;
           id?: string;
           included_items?: string[];
           owner_id?: string;
@@ -491,6 +556,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["proposal_status"];
           summary?: string;
           updated_at?: string;
+          whatsapp_message?: string | null;
         };
         Relationships: [
           {
@@ -525,6 +591,7 @@ export type Database = {
           latitude: number | null;
           longitude: number | null;
           niche: string;
+          official_website_url: string | null;
           opportunity_score: number;
           owner_id: string;
           primary_type: string | null;
@@ -551,6 +618,7 @@ export type Database = {
           latitude?: number | null;
           longitude?: number | null;
           niche: string;
+          official_website_url?: string | null;
           opportunity_score?: number;
           owner_id: string;
           primary_type?: string | null;
@@ -577,6 +645,7 @@ export type Database = {
           latitude?: number | null;
           longitude?: number | null;
           niche?: string;
+          official_website_url?: string | null;
           opportunity_score?: number;
           owner_id?: string;
           primary_type?: string | null;
@@ -622,6 +691,7 @@ export type Database = {
           processing_stage: string;
           progress: number;
           provider_call_count: number;
+          qualified_count: number | null;
           query: string;
           query_fingerprint: string | null;
           result_limit: number;
@@ -648,6 +718,7 @@ export type Database = {
           processing_stage?: string;
           progress?: number;
           provider_call_count?: number;
+          qualified_count?: number | null;
           query: string;
           query_fingerprint?: string | null;
           result_limit: number;
@@ -674,6 +745,7 @@ export type Database = {
           processing_stage?: string;
           progress?: number;
           provider_call_count?: number;
+          qualified_count?: number | null;
           query?: string;
           query_fingerprint?: string | null;
           result_limit?: number;
@@ -697,11 +769,15 @@ export type Database = {
           final_url: string | null;
           has_booking: boolean | null;
           has_contact_form: boolean | null;
+          has_meta_description: boolean | null;
+          has_mobile_viewport: boolean | null;
+          has_services_content: boolean | null;
           has_social_links: boolean | null;
           has_viewport: boolean | null;
           has_whatsapp: boolean | null;
           http_status: number | null;
           id: string;
+          initial_url: string | null;
           meta_description: string | null;
           owner_id: string;
           prospect_id: string;
@@ -720,11 +796,15 @@ export type Database = {
           final_url?: string | null;
           has_booking?: boolean | null;
           has_contact_form?: boolean | null;
+          has_meta_description?: boolean | null;
+          has_mobile_viewport?: boolean | null;
+          has_services_content?: boolean | null;
           has_social_links?: boolean | null;
           has_viewport?: boolean | null;
           has_whatsapp?: boolean | null;
           http_status?: number | null;
           id?: string;
+          initial_url?: string | null;
           meta_description?: string | null;
           owner_id: string;
           prospect_id: string;
@@ -743,11 +823,15 @@ export type Database = {
           final_url?: string | null;
           has_booking?: boolean | null;
           has_contact_form?: boolean | null;
+          has_meta_description?: boolean | null;
+          has_mobile_viewport?: boolean | null;
+          has_services_content?: boolean | null;
           has_social_links?: boolean | null;
           has_viewport?: boolean | null;
           has_whatsapp?: boolean | null;
           http_status?: number | null;
           id?: string;
+          initial_url?: string | null;
           meta_description?: string | null;
           owner_id?: string;
           prospect_id?: string;
@@ -779,6 +863,7 @@ export type Database = {
     };
     Functions: {
       create_manual_prospect: { Args: { payload: Json }; Returns: string };
+      delete_expired_place_discovery_cache: { Args: never; Returns: number };
       import_demo_data: { Args: never; Returns: number };
       mark_response_sent: {
         Args: { conversation_id: string; response_body: string };
