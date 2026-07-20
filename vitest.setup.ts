@@ -65,6 +65,10 @@ vi.mock("@/app/actions/data", async () => {
           }
         : { ok: false, error: "No existe" };
     },
+    analyzeSearchWebsitesAction: async () => ({
+      ok: true,
+      data: { runId: "analyze-search-test" },
+    }),
     retryDiscoveryAction: async () => ({
       ok: false,
       error: "No disponible en esta prueba",

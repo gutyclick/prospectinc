@@ -602,6 +602,8 @@ export type Database = {
           updated_at: string;
           website_status: Database["public"]["Enums"]["website_status"];
           website_url: string | null;
+          website_url_source: string | null;
+          website_url_verified_at: string | null;
         };
         Insert: {
           ai_summary?: string | null;
@@ -629,6 +631,8 @@ export type Database = {
           updated_at?: string;
           website_status?: Database["public"]["Enums"]["website_status"];
           website_url?: string | null;
+          website_url_source?: string | null;
+          website_url_verified_at?: string | null;
         };
         Update: {
           ai_summary?: string | null;
@@ -656,6 +660,8 @@ export type Database = {
           updated_at?: string;
           website_status?: Database["public"]["Enums"]["website_status"];
           website_url?: string | null;
+          website_url_source?: string | null;
+          website_url_verified_at?: string | null;
         };
         Relationships: [
           {
@@ -685,12 +691,14 @@ export type Database = {
           id: string;
           inserted_count: number;
           location: string;
+          no_website_count: number;
           opportunities_count: number;
           opportunity_filter: string | null;
           owner_id: string;
           processing_stage: string;
           progress: number;
           provider_call_count: number;
+          provisional_website_count: number;
           qualified_count: number | null;
           query: string;
           query_fingerprint: string | null;
@@ -712,12 +720,14 @@ export type Database = {
           id?: string;
           inserted_count?: number;
           location: string;
+          no_website_count?: number;
           opportunities_count?: number;
           opportunity_filter?: string | null;
           owner_id: string;
           processing_stage?: string;
           progress?: number;
           provider_call_count?: number;
+          provisional_website_count?: number;
           qualified_count?: number | null;
           query: string;
           query_fingerprint?: string | null;
@@ -739,12 +749,14 @@ export type Database = {
           id?: string;
           inserted_count?: number;
           location?: string;
+          no_website_count?: number;
           opportunities_count?: number;
           opportunity_filter?: string | null;
           owner_id?: string;
           processing_stage?: string;
           progress?: number;
           provider_call_count?: number;
+          provisional_website_count?: number;
           qualified_count?: number | null;
           query?: string;
           query_fingerprint?: string | null;
@@ -868,10 +880,6 @@ export type Database = {
       mark_response_sent: {
         Args: { conversation_id: string; response_body: string };
         Returns: undefined;
-      };
-      persist_discovery_results: {
-        Args: { discovered: Json; search_record_id: string };
-        Returns: Json;
       };
       persist_discovery_results_for_owner: {
         Args: {

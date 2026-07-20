@@ -11,17 +11,35 @@ export type DiscoveredBusiness = {
   displayName: string;
   formattedAddress: string | null;
   primaryType: string | null;
-  latitude: number | null;
-  longitude: number | null;
   websiteUrl: string | null;
-  phone: string | null;
   sourceUrl: string;
-  rating: number | null;
-  reviewsCount: number | null;
+};
+
+export type BusinessDiscoveryResult = {
+  businesses: DiscoveredBusiness[];
+  requestCount: 1;
+  attribution: {
+    provider: "google_places" | "fake";
+    label: string;
+    url: string | null;
+  };
 };
 
 export interface BusinessDiscoveryProvider {
-  search(input: BusinessSearchInput): Promise<DiscoveredBusiness[]>;
+  search(input: BusinessSearchInput): Promise<BusinessDiscoveryResult>;
+}
+
+export class FakeBusinessDiscoveryProvider implements BusinessDiscoveryProvider {
+  constructor(private readonly businesses: DiscoveredBusiness[] = []) {}
+
+  async search(input: BusinessSearchInput): Promise<BusinessDiscoveryResult> {
+    void input;
+    return {
+      businesses: [...this.businesses],
+      requestCount: 1,
+      attribution: { provider: "fake", label: "Datos de prueba", url: null },
+    };
+  }
 }
 
 export type DiscoveryErrorCode =

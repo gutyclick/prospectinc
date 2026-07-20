@@ -15,13 +15,8 @@ export const GOOGLE_PLACES_FIELD_MASK = [
   "places.displayName",
   "places.formattedAddress",
   "places.primaryType",
-  "places.location",
   "places.websiteUri",
-  "places.internationalPhoneNumber",
-  "places.nationalPhoneNumber",
   "places.googleMapsUri",
-  "places.rating",
-  "places.userRatingCount",
 ].join(",");
 
 const placeSchema = z.object({
@@ -29,15 +24,8 @@ const placeSchema = z.object({
   displayName: z.object({ text: z.string().min(1) }),
   formattedAddress: z.string().optional(),
   primaryType: z.string().optional(),
-  location: z
-    .object({ latitude: z.number(), longitude: z.number() })
-    .optional(),
   websiteUri: z.url().optional(),
-  internationalPhoneNumber: z.string().optional(),
-  nationalPhoneNumber: z.string().optional(),
   googleMapsUri: z.url(),
-  rating: z.number().min(0).max(5).optional(),
-  userRatingCount: z.number().int().nonnegative().optional(),
 });
 const responseSchema = z.object({ places: z.array(placeSchema).default([]) });
 
@@ -61,14 +49,25 @@ export function normalizeGooglePlace(
     displayName: raw.displayName.text,
     formattedAddress: raw.formattedAddress ?? null,
     primaryType: raw.primaryType ?? null,
-    latitude: raw.location?.latitude ?? null,
-    longitude: raw.location?.longitude ?? null,
     websiteUrl: raw.websiteUri ?? null,
-    phone: raw.internationalPhoneNumber ?? raw.nationalPhoneNumber ?? null,
     sourceUrl: raw.googleMapsUri,
-    rating: raw.rating ?? null,
-    reviewsCount: raw.userRatingCount ?? null,
   };
+}
+
+const REGION_CODES: Record<string, string> = {
+  panamá: "PA",
+  panama: "PA",
+  colombia: "CO",
+  méxico: "MX",
+  mexico: "MX",
+  españa: "ES",
+  spain: "ES",
+  "costa rica": "CR",
+};
+
+function resolveRegionCode(country?: string) {
+  if (!country) return undefined;
+  return REGION_CODES[country.trim().toLocaleLowerCase("es")];
 }
 
 export class GooglePlacesDiscoveryProvider implements BusinessDiscoveryProvider {
@@ -93,9 +92,19 @@ export class GooglePlacesDiscoveryProvider implements BusinessDiscoveryProvider 
   }
 
   async search(input: BusinessSearchInput) {
-    if (!Number.isInteger(input.limit) || input.limit < 1 || input.limit > 20) {
+    const configuredMaximum = Number(
+      process.env.GOOGLE_PLACES_MAX_RESULTS ?? 20,
+    );
+    const maximum = Number.isInteger(configuredMaximum)
+      ? Math.min(Math.max(configuredMaximum, 1), 20)
+      : 20;
+    if (
+      !Number.isInteger(input.limit) ||
+      input.limit < 1 ||
+      input.limit > maximum
+    ) {
       throw new BusinessDiscoveryError(
-        "Google Places admite entre 1 y 20 resultados por búsqueda.",
+        `Google Places admite entre 1 y ${maximum} resultados por búsqueda.`,
         "invalid-response",
       );
     }
@@ -120,6 +129,7 @@ export class GooglePlacesDiscoveryProvider implements BusinessDiscoveryProvider 
           body: JSON.stringify({
             textQuery: query,
             languageCode: "es",
+            regionCode: resolveRegionCode(input.country),
             pageSize: input.limit,
           }),
           signal,
@@ -164,7 +174,15 @@ export class GooglePlacesDiscoveryProvider implements BusinessDiscoveryProvider 
             "invalid-response",
           );
         }
-        return parsed.data.places.map(normalizeGooglePlace);
+        return {
+          businesses: parsed.data.places.map(normalizeGooglePlace),
+          requestCount: 1 as const,
+          attribution: {
+            provider: "google_places" as const,
+            label: "Google Places",
+            url: "https://www.google.com/maps",
+          },
+        };
       } catch (error) {
         if (error instanceof BusinessDiscoveryError) throw error;
         if (
@@ -175,10 +193,6 @@ export class GooglePlacesDiscoveryProvider implements BusinessDiscoveryProvider 
             "Google Places tardó demasiado en responder.",
             "timeout",
           );
-        }
-        if (attempt < this.maxAttempts) {
-          await this.wait(250 * 2 ** (attempt - 1));
-          continue;
         }
         throw new BusinessDiscoveryError(
           "No se pudo conectar con Google Places.",

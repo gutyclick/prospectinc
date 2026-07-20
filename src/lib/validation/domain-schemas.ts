@@ -105,6 +105,13 @@ export const searchSchema = z
     insertedCount: z.number().int().nonnegative().optional().default(0),
     deduplicatedCount: z.number().int().nonnegative().optional().default(0),
     providerCallCount: z.number().int().nonnegative().optional().default(0),
+    provisionalWebsiteCount: z
+      .number()
+      .int()
+      .nonnegative()
+      .optional()
+      .default(0),
+    noWebsiteCount: z.number().int().nonnegative().optional().default(0),
     progress: z.number().int().min(0).max(100).optional().default(0),
     processingStage: z
       .enum([

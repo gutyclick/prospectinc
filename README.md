@@ -73,6 +73,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<clave publicable mostrada por supabase sta
 APP_OWNER_EMAIL=<correo exacto del usuario creado en Auth>
 DATA_PROVIDER=supabase
 GOOGLE_PLACES_API_KEY=<clave restringida a Places API (New)>
+GOOGLE_PLACES_MAX_RESULTS=20
 TRIGGER_SECRET_KEY=<clave secreta del entorno de Trigger.dev>
 TRIGGER_PROJECT_REF=<referencia proj_... del proyecto Trigger.dev>
 WEBSITE_ANALYSIS_TIMEOUT_MS=60000

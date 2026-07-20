@@ -11,12 +11,16 @@ type SearchHistoryTableProps = {
   searches: SearchRecord[];
   onRetry?: (id: string) => void;
   retryingId?: string | null;
+  onAnalyzeSites?: (id: string) => void;
+  analyzingSitesId?: string | null;
 };
 
 export function SearchHistoryTable({
   searches,
   onRetry,
   retryingId,
+  onAnalyzeSites,
+  analyzingSitesId,
 }: SearchHistoryTableProps) {
   if (searches.length === 0) {
     return (
@@ -43,6 +47,7 @@ export function SearchHistoryTable({
               "Resultados",
               "Oportunidades",
               "Nuevos / deduplicados",
+              "Con sitio / sin sitio",
               "Operaciones",
               "Estado",
               "Acción",
@@ -74,6 +79,9 @@ export function SearchHistoryTable({
               </td>
               <td className="px-4 py-3">
                 {search.insertedCount} / {search.deduplicatedCount}
+              </td>
+              <td className="px-4 py-3">
+                {search.provisionalWebsiteCount} / {search.noWebsiteCount}
               </td>
               <td className="px-4 py-3">{search.providerCallCount}</td>
               <td className="px-4 py-3">
@@ -111,6 +119,20 @@ export function SearchHistoryTable({
                     className="min-h-9 rounded-lg border border-blue-200 px-3 text-xs font-semibold text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-60"
                   >
                     {retryingId === search.id ? "Reintentando…" : "Reintentar"}
+                  </button>
+                ) : search.status === "completada" && onAnalyzeSites ? (
+                  <button
+                    type="button"
+                    disabled={
+                      analyzingSitesId === search.id ||
+                      search.provisionalWebsiteCount === 0
+                    }
+                    onClick={() => onAnalyzeSites(search.id)}
+                    className="min-h-9 rounded-lg border border-violet-200 px-3 text-xs font-semibold text-violet-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {analyzingSitesId === search.id
+                      ? "Preparando…"
+                      : "Analizar sitios encontrados"}
                   </button>
                 ) : null}
               </td>

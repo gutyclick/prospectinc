@@ -114,10 +114,7 @@ export const analyzeProspectWebsite = task({
               value: contact.value,
               normalized_value: contact.normalizedValue,
               source_url: contact.sourceUrl,
-              source_type:
-                contact.type === "instagram" || contact.type === "facebook"
-                  ? "social"
-                  : "website",
+              source_type: "official_website",
               is_public: true,
               confidence: 1,
               verification_status: "verificado",
@@ -167,6 +164,15 @@ export const analyzeProspectWebsite = task({
         })
         .eq("id", audit.id);
       if (updateError) throw new Error("No se pudo guardar la auditoría.");
+      await client
+        .from("prospects")
+        .update({
+          website_url: analysis.finalUrl,
+          website_url_source: "official_website",
+          website_url_verified_at: new Date().toISOString(),
+        })
+        .eq("id", prospect.id)
+        .eq("owner_id", payload.data.ownerId);
       logger.info("Auditoría web completada", {
         prospectId: prospect.id,
         auditId: audit.id,

@@ -71,4 +71,19 @@ describe("flujo de búsquedas reales", () => {
     expect(screen.getByText("Talleres automotrices")).toBeInTheDocument();
     expect(screen.queryByText("Clínicas dentales")).not.toBeInTheDocument();
   });
+
+  it("expone atribución y prepara el análisis sin fingir que terminó", async () => {
+    const user = userEvent.setup();
+    await renderSearchesView();
+
+    expect(
+      screen.getByText(/datos temporales proporcionados por/i),
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getAllByRole("button", { name: "Analizar sitios encontrados" })[0],
+    );
+    expect(
+      await screen.findByText(/no implica que el análisis haya finalizado/i),
+    ).toBeInTheDocument();
+  });
 });

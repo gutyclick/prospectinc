@@ -19,7 +19,10 @@ import {
 } from "@/lib/services/business-discovery-service";
 import { mapSearch } from "@/lib/repositories/supabase/mappers";
 import type { discoverBusinesses } from "@/trigger/discover-businesses";
-import type { analyzeProspectWebsite } from "@/trigger/website-analysis";
+import type {
+  analyzeProspectWebsite,
+  analyzeSearchProspects,
+} from "@/trigger/website-analysis";
 import {
   proposalFormSchema,
   prospectFormSchema,
@@ -189,6 +192,38 @@ export async function getSearchStatusAction(id: unknown) {
     if (error || !data)
       throw new RepositoryError("La búsqueda no existe.", "not-found");
     return mapSearch(data);
+  });
+}
+
+export async function analyzeSearchWebsitesAction(id: unknown) {
+  return execute(async () => {
+    const searchId = z.string().uuid().parse(id);
+    const [client, owner] = await Promise.all([createClient(), requireOwner()]);
+    const { data: search, error } = await client
+      .from("searches")
+      .select("id,status")
+      .eq("id", searchId)
+      .eq("status", "completada")
+      .single();
+    if (error || !search)
+      throw new RepositoryError(
+        "La búsqueda completada no existe.",
+        "not-found",
+      );
+    const idempotencyKey = await idempotencyKeys.create(
+      `analyze-search-manual:${search.id}`,
+      { scope: "global" },
+    );
+    const handle = await tasks.trigger<typeof analyzeSearchProspects>(
+      "analyze-search-prospects",
+      { searchId: search.id, ownerId: owner.id, force: false },
+      {
+        idempotencyKey,
+        idempotencyKeyTTL: "5m",
+        tags: [`search:${search.id}`],
+      },
+    );
+    return { runId: handle.id };
   });
 }
 

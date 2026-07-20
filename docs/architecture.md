@@ -177,7 +177,7 @@ Las búsquedas reales se encolan desde una Server Action y se ejecutan en `disco
 
 ## Descubrimiento real con Google Places
 
-`BusinessDiscoveryProvider` delimita el proveedor externo. `GooglePlacesDiscoveryProvider` ejecuta exclusivamente Text Search (New) desde el servidor mediante POST, idioma español, un FieldMask explícito y un máximo de 20 resultados. No solicita fotografías, reseñas completas ni Place Details.
+`BusinessDiscoveryProvider` devuelve un `BusinessDiscoveryResult` con negocios normalizados, contador de solicitudes y atribución. `GooglePlacesDiscoveryProvider` ejecuta exclusivamente Text Search (New) desde el servidor mediante POST, idioma español, región cuando puede determinarse, un FieldMask explícito y un máximo de 20 resultados. `FakeBusinessDiscoveryProvider` permite probar el contrato sin red. No se solicitan fotografías, reseñas, teléfonos, coordenadas, ratings ni Place Details.
 
 `BusinessDiscoveryService` crea la búsqueda, impide repeticiones idénticas durante 24 horas salvo confirmación, llama una vez al proveedor, normaliza y deduplica por `google_place_id`. La función PostgreSQL `persist_discovery_results` guarda prospectos, teléfonos con fuente, contadores y actividad en una transacción. Los fallos dejan el registro en estado `fallida` con un mensaje saneado.
 

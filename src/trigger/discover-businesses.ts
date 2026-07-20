@@ -3,7 +3,10 @@ import "server-only";
 import { AbortTaskRunError, logger, metadata, task } from "@trigger.dev/sdk";
 
 import { BusinessDiscoveryError } from "@/lib/services/business-discovery";
-import { deduplicateBusinesses } from "@/lib/services/business-discovery-service";
+import {
+  deduplicateBusinesses,
+  getDiscoveryCacheExpiration,
+} from "@/lib/services/business-discovery-service";
 import { GooglePlacesDiscoveryProvider } from "@/lib/services/google-places-discovery-provider";
 import type { Json } from "@/types/database.types";
 
@@ -59,14 +62,14 @@ export const discoverBusinesses = task({
 
     try {
       signal.throwIfAborted();
-      const discovered = await new GooglePlacesDiscoveryProvider().search({
+      const discovery = await new GooglePlacesDiscoveryProvider().search({
         niche: search.query,
         location: search.location,
         country: search.country ?? undefined,
         limit: search.result_limit,
         signal,
       });
-      const unique = deduplicateBusinesses(discovered).slice(
+      const unique = deduplicateBusinesses(discovery.businesses).slice(
         0,
         search.result_limit,
       );
@@ -79,7 +82,8 @@ export const discoverBusinesses = task({
       metadata
         .set("stage", "guardando")
         .set("progress", 55)
-        .set("resultCount", unique.length);
+        .set("resultCount", unique.length)
+        .set("providerRequests", discovery.requestCount);
 
       const now = new Date();
       await client
@@ -88,9 +92,7 @@ export const discoverBusinesses = task({
         .eq("owner_id", ownerId)
         .lte("expires_at", now.toISOString());
       if (unique.length > 0) {
-        const expiresAt = new Date(
-          now.getTime() + 24 * 60 * 60 * 1_000,
-        ).toISOString();
+        const expiresAt = getDiscoveryCacheExpiration(now);
         const { error: cacheError } = await client
           .from("place_discovery_cache")
           .upsert(
@@ -147,6 +149,7 @@ export const discoverBusinesses = task({
         searchId,
         ownerId,
         results: unique.length,
+        providerRequests: discovery.requestCount,
         analysisBatchOk: analyses.ok,
       });
       return { searchId, counters, analysisBatchOk: analyses.ok };

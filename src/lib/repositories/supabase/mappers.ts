@@ -31,6 +31,8 @@ export function mapSearch(row: Row<"searches">): Search {
     insertedCount: row.inserted_count,
     deduplicatedCount: row.deduplicated_count,
     providerCallCount: row.provider_call_count,
+    provisionalWebsiteCount: row.provisional_website_count,
+    noWebsiteCount: row.no_website_count,
     progress: row.progress,
     processingStage: row.processing_stage,
     externalRunId: row.external_run_id,

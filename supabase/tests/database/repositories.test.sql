@@ -29,13 +29,19 @@ select throws_ok(
   $$insert into public.searches (owner_id, query, location, result_limit, sources, status, query_fingerprint) values (auth.uid(), 'Dentistas', 'Panamá', 20, array['google-places'], 'pendiente', 'fingerprint-activo')$$,
   'una huella activa evita ejecuciones duplicadas'
 );
-select lives_ok(
-  $$select public.persist_discovery_results('40000000-0000-4000-8000-000000000099', '[{"placeId":"place-real-1","displayName":"Clínica Real","formattedAddress":"Panamá","primaryType":"dentist","latitude":8.98,"longitude":-79.52,"websiteUrl":null,"phone":"+507 200-0000","sourceUrl":"https://maps.google.com/?cid=real-1","rating":4.5,"reviewsCount":10}]'::jsonb)$$,
-  'la persistencia de descubrimiento es transaccional'
+select hasnt_function('public', 'persist_discovery_results', array['uuid', 'jsonb'], 'el cliente no puede usar el RPC antiguo');
+select throws_ok(
+  $$select public.persist_discovery_results_for_owner('40000000-0000-4000-8000-000000000099', auth.uid(), '[]'::jsonb)$$,
+  'el RPC real rechaza roles no privilegiados'
 );
-select is((select inserted_count from public.searches where id = '40000000-0000-4000-8000-000000000099'), 1, 'registra el negocio insertado');
-select is((select source_url from public.contact_points where normalized_value = '+5072000000'), 'https://maps.google.com/?cid=real-1', 'el teléfono conserva la fuente atribuible');
-select is((select count(*) from public.prospects where google_place_id = 'place-real-1'), 1::bigint, 'google_place_id evita duplicados por propietario');
+select lives_ok(
+  $$insert into public.prospects (owner_id, google_place_id, business_name, niche) values (auth.uid(), 'place-real-1', 'Clínica Real', 'Dentistas')$$,
+  'google_place_id puede guardarse como identificador permanente'
+);
+select throws_ok(
+  $$insert into public.prospects (owner_id, google_place_id, business_name, niche) values (auth.uid(), 'place-real-1', 'Duplicado', 'Dentistas')$$,
+  'google_place_id evita duplicados por propietario'
+);
 
 select * from finish();
 rollback;

@@ -7,6 +7,7 @@ import { useRealtimeRun } from "@trigger.dev/react-hooks";
 
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import {
+  analyzeSearchWebsitesAction,
   discoverBusinessesAction,
   getSearchStatusAction,
   retryDiscoveryAction,
@@ -76,6 +77,7 @@ export function SearchesView({
       : null,
   );
   const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [analyzingSitesId, setAnalyzingSitesId] = useState<string | null>(null);
   const [repeatedInput, setRepeatedInput] = useState<SearchFormValues | null>(
     null,
   );
@@ -195,6 +197,22 @@ export function SearchesView({
     setNotification("La búsqueda fallida se volvió a encolar.");
   }
 
+  async function analyzeSites(searchId: string) {
+    setAnalyzingSitesId(searchId);
+    const result = await analyzeSearchWebsitesAction(searchId);
+    if (!result.ok) {
+      setAnalyzingSitesId(null);
+      setNotificationTone("error");
+      setNotification(result.error);
+      return;
+    }
+    setAnalyzingSitesId(null);
+    setNotificationTone("success");
+    setNotification(
+      "Los sitios provisionales se enviaron al analizador. El botón no implica que el análisis haya finalizado.",
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -277,7 +295,23 @@ export function SearchesView({
             searches={filteredSearches}
             onRetry={retrySearch}
             retryingId={retryingId}
+            onAnalyzeSites={(id) => void analyzeSites(id)}
+            analyzingSitesId={analyzingSitesId}
           />
+          <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs leading-5 text-slate-500">
+            Los resultados de descubrimiento y sus sitios son datos temporales
+            proporcionados por{" "}
+            <a
+              href="https://www.google.com/maps"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-blue-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+            >
+              Google Places
+            </a>
+            . Se consideran provisionales hasta verificarlos en el sitio
+            oficial.
+          </p>
           <PanamaOpportunityMap />
         </div>
         <div className="space-y-6">
