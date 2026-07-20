@@ -7,6 +7,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import {
   addExclusionAction,
   createProspectAction,
+  getProspectWebsiteAnalysisStatusAction,
+  reanalyzeProspectWebsiteAction,
   updateProspectStatusAction,
 } from "@/app/actions/data";
 import type { Prospect } from "@/lib/domain";
@@ -41,6 +43,32 @@ export function ProspectsView({
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+  const [activeWebsiteAnalysis, setActiveWebsiteAnalysis] = useState<{
+    prospectId: string;
+    startedAt: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!activeWebsiteAnalysis) return;
+    const active = activeWebsiteAnalysis;
+    const timer = window.setInterval(async () => {
+      const result = await getProspectWebsiteAnalysisStatusAction(
+        active.prospectId,
+        active.startedAt,
+      );
+      if (!result.ok || !result.data) return;
+      if (result.data.status === "completada") {
+        setActiveWebsiteAnalysis(null);
+        setNotification("El análisis del sitio finalizó correctamente.");
+      } else if (result.data.status === "fallida") {
+        setActiveWebsiteAnalysis(null);
+        setNotification(
+          result.data.error_message ?? "El análisis del sitio falló.",
+        );
+      }
+    }, 2_000);
+    return () => window.clearInterval(timer);
+  }, [activeWebsiteAnalysis]);
 
   const visibleProspects = useMemo(
     () => applyProspectFilters(prospects, filters),
@@ -123,6 +151,22 @@ export function ProspectsView({
     );
   }
 
+  async function reanalyzeWebsite() {
+    if (!selectedProspect) return;
+    const result = await reanalyzeProspectWebsiteAction(selectedProspect.id);
+    if (!result.ok) {
+      setNotification(result.error);
+      return;
+    }
+    setActiveWebsiteAnalysis({
+      prospectId: selectedProspect.id,
+      startedAt: result.data.startedAt,
+    });
+    setNotification(
+      "El análisis del sitio se inició en segundo plano. Su estado se actualizará al finalizar.",
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -193,6 +237,8 @@ export function ProspectsView({
           }
           onStatusChange={(status) => void changeStatus(status)}
           onExclude={() => void excludePrimaryContact()}
+          onReanalyze={() => void reanalyzeWebsite()}
+          isAnalyzing={activeWebsiteAnalysis?.prospectId === selectedProspect?.id}
         />
       </div>
 

@@ -78,6 +78,25 @@ describe("centro de prospectos", () => {
     ).toBeInTheDocument();
   });
 
+  it("permite iniciar un reanálisis manual del sitio", async () => {
+    const user = userEvent.setup();
+    await renderProspectsView();
+
+    await user.click(
+      screen.getByRole("button", { name: "Ver Taller AutoMax" }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Reanalizar sitio web" }),
+    );
+
+    expect(
+      await screen.findByText(/análisis del sitio se inició en segundo plano/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Análisis en curso…" }),
+    ).toBeDisabled();
+  });
+
   it("añade manualmente un prospecto al repositorio y a la tabla", async () => {
     const user = userEvent.setup();
     await renderProspectsView();

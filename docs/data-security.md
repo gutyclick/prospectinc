@@ -97,6 +97,15 @@ Los logs pueden incluir identificadores internos no adivinables, proveedor, oper
 - El navegador recibe únicamente un token público limitado a observar una ejecución concreta.
 - Los logs estructurados contienen identificadores internos, etapas y contadores; excluyen claves, contactos y respuestas completas de proveedores.
 
+## Navegación web y SSRF
+
+- El analizador acepta únicamente HTTP y HTTPS, elimina credenciales y fragmentos y limita redirecciones.
+- Antes de cada navegación se resuelve DNS y se bloquean localhost, metadatos de infraestructura y rangos privados, reservados, loopback, link-local y multicast.
+- Chromium intercepta todas las solicitudes, bloquea protocolos no web, descargas, fuentes y medios, y ejecuta sin extensiones.
+- Fetch limita HTML a 2 MB; la tarea limita el tiempo total y siempre cierra página, contexto y navegador.
+- La exploración se limita al sitio inicial, enlaces internos muestreados y páginas de contacto relevantes.
+- Las capturas se guardan en el bucket privado `website-audits`, separado por propietario.
+
 ## Riesgos prioritarios
 
 1. Exponer una credencial privilegiada por una importación cliente accidental.

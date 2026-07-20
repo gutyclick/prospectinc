@@ -169,7 +169,7 @@ Las búsquedas reales se encolan desde una Server Action y se ejecutan en `disco
 - Las tareas verifican `ownerId` en el servidor y usan un cliente `service_role` aislado en módulos `server-only`.
 - Las claves idempotentes y el índice parcial de búsquedas activas evitan ejecuciones duplicadas.
 - `analyze-search-prospects` selecciona prospectos por lote y omite sitios inexistentes o auditados recientemente.
-- `analyze-prospect-website` es un esqueleto seguro y no abre un navegador todavía.
+- `analyze-prospect-website` usa primero un fetch HTML limitado y recurre a Chromium para renderizado o captura. Cada navegación y recurso pasa por validación SSRF.
 - Las colas limitan la concurrencia y los errores permanentes no se reintentan; los transitorios usan backoff.
 - Los tokens públicos entregados al cliente quedan limitados a una ejecución y solo sirven para observarla.
 

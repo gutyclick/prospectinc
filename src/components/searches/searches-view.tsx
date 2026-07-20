@@ -90,9 +90,10 @@ export function SearchesView({
   const { run: realtimeRun } = useRealtimeRun<typeof discoverBusinesses>(
     activeRun?.runId || undefined,
     {
-    accessToken: activeRun?.token,
-    enabled: Boolean(activeRun?.runId && activeRun.token),
-  });
+      accessToken: activeRun?.token,
+      enabled: Boolean(activeRun?.runId && activeRun.token),
+    },
+  );
   const activeSearch = activeRun
     ? searches.find((search) => search.id === activeRun.searchId)
     : null;

@@ -19,6 +19,7 @@ import {
 } from "@/lib/services/business-discovery-service";
 import { mapSearch } from "@/lib/repositories/supabase/mappers";
 import type { discoverBusinesses } from "@/trigger/discover-businesses";
+import type { analyzeProspectWebsite } from "@/trigger/website-analysis";
 import {
   proposalFormSchema,
   prospectFormSchema,
@@ -188,6 +189,66 @@ export async function getSearchStatusAction(id: unknown) {
     if (error || !data)
       throw new RepositoryError("La búsqueda no existe.", "not-found");
     return mapSearch(data);
+  });
+}
+
+export async function reanalyzeProspectWebsiteAction(id: unknown) {
+  return execute(async () => {
+    const prospectId = z.string().uuid().parse(id);
+    const [client, owner] = await Promise.all([createClient(), requireOwner()]);
+    const { data: prospect, error } = await client
+      .from("prospects")
+      .select("id,website_url")
+      .eq("id", prospectId)
+      .single();
+    if (error || !prospect)
+      throw new RepositoryError("El prospecto no existe.", "not-found");
+    if (!prospect.website_url)
+      throw new RepositoryError(
+        "El prospecto no tiene un sitio web para analizar.",
+      );
+    const minute = Math.floor(Date.now() / 60_000);
+    const startedAt = new Date().toISOString();
+    const idempotencyKey = await idempotencyKeys.create(
+      `website-manual:${prospect.id}:${minute}`,
+      { scope: "global" },
+    );
+    const handle = await tasks.trigger<typeof analyzeProspectWebsite>(
+      "analyze-prospect-website",
+      { prospectId: prospect.id, ownerId: owner.id, force: true },
+      {
+        idempotencyKey,
+        idempotencyKeyTTL: "5m",
+        tags: [`prospect:${prospect.id}`],
+      },
+    );
+    return {
+      runId: handle.id,
+      publicAccessToken: handle.publicAccessToken,
+      startedAt,
+    };
+  });
+}
+
+export async function getProspectWebsiteAnalysisStatusAction(
+  id: unknown,
+  startedAtInput: unknown,
+) {
+  return execute(async () => {
+    const prospectId = z.string().uuid().parse(id);
+    const startedAt = z.string().datetime().parse(startedAtInput);
+    const client = await createClient();
+    await requireOwner();
+    const { data, error } = await client
+      .from("website_audits")
+      .select("status,error_message,analyzed_at")
+      .eq("prospect_id", prospectId)
+      .gte("created_at", startedAt)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new RepositoryError("No se pudo consultar el análisis.");
+    return data;
   });
 }
 

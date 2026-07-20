@@ -6,6 +6,7 @@ import {
   MessageCircle,
   Send,
   Phone,
+  ScanSearch,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -22,11 +23,15 @@ export function ProspectQuickView({
   onSave,
   onStatusChange,
   onExclude,
+  onReanalyze,
+  isAnalyzing = false,
 }: {
   prospect: Prospect | null;
   onSave: () => void;
   onStatusChange: (status: CommercialStatus) => void;
   onExclude: () => void;
+  onReanalyze: () => void;
+  isAnalyzing?: boolean;
 }) {
   if (!prospect) {
     return (
@@ -179,6 +184,17 @@ export function ProspectQuickView({
       </section>
 
       <div className="grid gap-2 border-t border-slate-100 pt-4 sm:grid-cols-2">
+        {prospect.websiteUrl ? (
+          <button
+            type="button"
+            onClick={onReanalyze}
+            disabled={isAnalyzing}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-violet-200 px-3 text-sm font-semibold text-violet-700 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
+          >
+            <ScanSearch className="size-4" aria-hidden="true" />
+            {isAnalyzing ? "Análisis en curso…" : "Reanalizar sitio web"}
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={onSave}

@@ -24,9 +24,11 @@ vi.mock("@/app/actions/data", async () => {
     discoverBusinessesAction: async (
       values: Parameters<typeof repositories.searchRepository.createSearch>[0],
     ) => {
-        const created = await repositories.searchRepository.createSearch(values);
-        window.setTimeout(() => {
-          void repositories.searchRepository.completeSearch(created.id).catch(() => {
+      const created = await repositories.searchRepository.createSearch(values);
+      window.setTimeout(() => {
+        void repositories.searchRepository
+          .completeSearch(created.id)
+          .catch(() => {
             // Otra prueba puede haber restablecido el repositorio antes del temporizador.
           });
       }, 75);
@@ -48,25 +50,37 @@ vi.mock("@/app/actions/data", async () => {
       const search = (await repositories.searchRepository.getAll()).find(
         (item) => item.id === id,
       );
-        return search
-          ? {
-              ok: true,
-              data:
-                search.status === "analizando"
-                  ? {
-                      ...search,
-                      progress: 15,
-                      processingStage: "descubriendo" as const,
-                      externalRunId: "run-test",
-                    }
-                  : search,
-            }
+      return search
+        ? {
+            ok: true,
+            data:
+              search.status === "analizando"
+                ? {
+                    ...search,
+                    progress: 15,
+                    processingStage: "descubriendo" as const,
+                    externalRunId: "run-test",
+                  }
+                : search,
+          }
         : { ok: false, error: "No existe" };
     },
     retryDiscoveryAction: async () => ({
       ok: false,
       error: "No disponible en esta prueba",
     }),
+      reanalyzeProspectWebsiteAction: async () => ({
+        ok: true,
+        data: {
+          runId: "website-run-test",
+          publicAccessToken: "token-test",
+          startedAt: new Date().toISOString(),
+        },
+      }),
+      getProspectWebsiteAnalysisStatusAction: async () => ({
+        ok: true,
+        data: null,
+      }),
     createProspectAction: async (
       values: Parameters<
         typeof repositories.prospectRepository.createProspect

@@ -8,12 +8,15 @@ import {
 } from "@trigger.dev/sdk";
 import { z } from "zod";
 
+import { UnsafeUrlError } from "@/lib/services/safe-web-url";
+import { analyzeWebsite } from "@/lib/services/website-analyzer";
+
+import { selectProspectsForAnalysis } from "./task-domain";
 import {
   getAuthorizedOwnerContext,
   getAuthorizedTaskContext,
   ownedTaskPayloadSchema,
 } from "./task-support";
-import { selectProspectsForAnalysis } from "./task-domain";
 
 const websitePayloadSchema = z.object({
   prospectId: z.string().uuid(),
@@ -23,10 +26,10 @@ const websitePayloadSchema = z.object({
 
 export const analyzeProspectWebsite = task({
   id: "analyze-prospect-website",
-  queue: { name: "website-analysis", concurrencyLimit: 3 },
-  maxDuration: 120,
+  queue: { name: "website-analysis", concurrencyLimit: 2 },
+  maxDuration: 150,
   retry: { maxAttempts: 2 },
-  run: async (input: unknown, { signal }) => {
+  run: async (input: unknown, { signal, ctx }) => {
     const payload = websitePayloadSchema.safeParse(input);
     if (!payload.success) throw new AbortTaskRunError("Payload inválido.");
     const { client } = await getAuthorizedOwnerContext(payload.data.ownerId);
@@ -42,7 +45,7 @@ export const analyzeProspectWebsite = task({
     if (!prospect.website_url) return { status: "omitido-sin-sitio" as const };
 
     const recentSince = new Date(
-      Date.now() - 30 * 24 * 60 * 60 * 1000,
+      Date.now() - 30 * 24 * 60 * 60 * 1_000,
     ).toISOString();
     if (!payload.data.force) {
       const { count } = await client
@@ -55,16 +58,130 @@ export const analyzeProspectWebsite = task({
       if ((count ?? 0) > 0) return { status: "omitido-reciente" as const };
     }
 
-    const { error: insertError } = await client.from("website_audits").insert({
-      owner_id: payload.data.ownerId,
-      prospect_id: prospect.id,
-      status: "pendiente",
-      final_url: prospect.website_url,
-      facts: { source: "trigger-skeleton", browserImplemented: false },
-    });
-    if (insertError) throw new Error("No se pudo preparar la auditoría.");
-    logger.info("Auditoría web preparada", { prospectId: prospect.id });
-    return { status: "preparado" as const };
+    const { data: audit, error: insertError } = await client
+      .from("website_audits")
+      .insert({
+        owner_id: payload.data.ownerId,
+        prospect_id: prospect.id,
+        status: "analizando",
+        final_url: prospect.website_url,
+        facts: { source: "trigger-playwright", runId: ctx.run.id },
+      })
+      .select("id")
+      .single();
+    if (insertError || !audit)
+      throw new Error("No se pudo preparar la auditoría.");
+
+    try {
+      const analysis = await analyzeWebsite(prospect.website_url, {
+        signal,
+        timeoutMs: Number(process.env.WEBSITE_ANALYSIS_TIMEOUT_MS ?? 60_000),
+      });
+      const basePath = `${payload.data.ownerId}/${prospect.id}/${audit.id}`;
+      const upload = async (name: string, contents: Buffer | null) => {
+        if (!contents) return null;
+        const path = `${basePath}/${name}.png`;
+        const { error: uploadError } = await client.storage
+          .from("website-audits")
+          .upload(path, contents, { contentType: "image/png", upsert: false });
+        return uploadError ? null : path;
+      };
+      const desktopPath = await upload("desktop", analysis.desktopScreenshot);
+      const mobilePath = await upload("mobile", analysis.mobileScreenshot);
+
+      const { data: exclusions } = await client
+        .from("exclusion_list")
+        .select("contact_type,normalized_value")
+        .eq("owner_id", payload.data.ownerId);
+      const excluded = new Set(
+        (exclusions ?? []).map(
+          (item) => `${item.contact_type}:${item.normalized_value}`,
+        ),
+      );
+      const contacts = analysis.facts.contacts.filter(
+        (contact) =>
+          !excluded.has(`${contact.type}:${contact.normalizedValue}`),
+      );
+      if (contacts.length > 0) {
+        const { error: contactError } = await client
+          .from("contact_points")
+          .upsert(
+            contacts.map((contact) => ({
+              owner_id: payload.data.ownerId,
+              prospect_id: prospect.id,
+              type: contact.type,
+              value: contact.value,
+              normalized_value: contact.normalizedValue,
+              source_url: contact.sourceUrl,
+              is_public: true,
+              confidence: 1,
+              verification_status: "verificado",
+              last_verified_at: new Date().toISOString(),
+            })),
+            {
+              onConflict: "prospect_id,type,normalized_value",
+              ignoreDuplicates: true,
+            },
+          );
+        if (contactError)
+          logger.warn("Los contactos observados no pudieron persistirse", {
+            prospectId: prospect.id,
+            auditId: audit.id,
+          });
+      }
+
+      const copyrightYear =
+        analysis.facts.copyright?.match(/\b(19|20)\d{2}\b/)?.[0];
+      const { error: updateError } = await client
+        .from("website_audits")
+        .update({
+          status: "completada",
+          final_url: analysis.finalUrl,
+          http_status: analysis.httpStatus,
+          uses_https: analysis.finalUrl.startsWith("https:"),
+          has_viewport: analysis.facts.hasMobileViewport,
+          has_contact_form: analysis.facts.hasContactForm,
+          has_whatsapp: analysis.facts.hasWhatsapp,
+          has_booking: analysis.facts.hasBooking,
+          has_social_links: analysis.facts.socialLinks.length > 0,
+          title: analysis.facts.title,
+          meta_description: analysis.facts.metaDescription,
+          copyright_year: copyrightYear ? Number(copyrightYear) : null,
+          broken_links_count: analysis.brokenLinksCount,
+          screenshot_path: desktopPath,
+          facts: {
+            ...analysis.facts,
+            initialUrl: analysis.initialUrl,
+            mobileScreenshotPath: mobilePath,
+          },
+          analyzed_at: new Date().toISOString(),
+          error_message: null,
+        })
+        .eq("id", audit.id);
+      if (updateError) throw new Error("No se pudo guardar la auditoría.");
+      logger.info("Auditoría web completada", {
+        prospectId: prospect.id,
+        auditId: audit.id,
+        contacts: contacts.length,
+        brokenLinks: analysis.brokenLinksCount,
+      });
+      return { status: "completada" as const, auditId: audit.id };
+    } catch (error) {
+      await client
+        .from("website_audits")
+        .update({
+          status: "fallida",
+          error_message:
+            error instanceof UnsafeUrlError
+              ? error.message
+              : "No se pudo analizar el sitio de forma segura.",
+          analyzed_at: new Date().toISOString(),
+        })
+        .eq("id", audit.id);
+      if (error instanceof UnsafeUrlError)
+        throw new AbortTaskRunError(error.message);
+      throw error;
+    }
   },
 });
 
@@ -85,13 +202,11 @@ export const analyzeSearchProspects = task({
       .eq("search_id", payload.data.searchId)
       .eq("owner_id", payload.data.ownerId);
     if (error) throw new Error("No se pudieron cargar los prospectos.");
-
     const withWebsite = prospects.filter((prospect) => prospect.website_url);
     if (withWebsite.length === 0)
       return { launched: 0, failed: 0, skipped: prospects.length };
-
     const recentSince = new Date(
-      Date.now() - 30 * 24 * 60 * 60 * 1000,
+      Date.now() - 30 * 24 * 60 * 60 * 1_000,
     ).toISOString();
     const { data: recentAudits } = await client
       .from("website_audits")
@@ -103,15 +218,11 @@ export const analyzeSearchProspects = task({
         "prospect_id",
         withWebsite.map((prospect) => prospect.id),
       );
-    const recentIds = new Set(
-      (recentAudits ?? []).map((audit) => audit.prospect_id),
-    );
     const eligible = selectProspectsForAnalysis(
       withWebsite,
-      recentIds,
+      new Set((recentAudits ?? []).map((audit) => audit.prospect_id)),
       payload.data.force,
     );
-
     const items = await Promise.all(
       eligible.map(async (prospect) => ({
         payload: {
@@ -124,14 +235,14 @@ export const analyzeSearchProspects = task({
             `website:${prospect.id}:${ctx.run.id}`,
             { scope: "global" },
           ),
-          idempotencyKeyTTL: "1d",
+          idempotencyKeyTTL: "1d" as const,
         },
       })),
     );
     signal.throwIfAborted();
     const batch = await analyzeProspectWebsite.batchTriggerAndWait(items);
     const failed = batch.runs.filter((run) => !run.ok).length;
-    logger.info("Lote de auditorías preparado", {
+    logger.info("Lote de auditorías completado", {
       searchId: payload.data.searchId,
       launched: items.length,
       failed,
