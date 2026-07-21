@@ -40,4 +40,19 @@ describe("formulario de búsqueda", () => {
     ).toBeInTheDocument();
     expect(onStart).not.toHaveBeenCalled();
   });
+
+  it("entrega únicamente los valores y no reenvía el evento como confirmación", async () => {
+    const user = userEvent.setup();
+    const onStart = vi.fn().mockResolvedValue(undefined);
+    render(<SearchConfigurationForm isProcessing={false} onStart={onStart} />);
+    await user.type(
+      screen.getByLabelText("Nicho o tipo de negocio"),
+      "Dentistas",
+    );
+    await user.type(screen.getByLabelText("Ubicación"), "Ciudad de Panamá");
+    await user.click(screen.getByRole("button", { name: "Iniciar análisis" }));
+    expect(onStart).toHaveBeenCalledOnce();
+    expect(onStart.mock.calls[0]).toHaveLength(1);
+    expect(onStart.mock.calls[0]?.[0]).not.toHaveProperty("confirmRepeated");
+  });
 });

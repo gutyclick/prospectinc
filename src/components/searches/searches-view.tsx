@@ -139,6 +139,7 @@ export function SearchesView({
     values: SearchFormValues,
     confirmRepeated = false,
   ) {
+    const repeatedSearchConfirmed = confirmRepeated === true;
     setNotification(null);
     setNotificationTone("success");
     setRepeatedInput(null);
@@ -147,7 +148,7 @@ export function SearchesView({
     try {
       const result = await discoverBusinessesAction({
         ...values,
-        confirmRepeated,
+        confirmRepeated: repeatedSearchConfirmed,
       });
       if (!result.ok) {
         if (result.requiresConfirmation) setRepeatedInput(values);
