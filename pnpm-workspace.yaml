@@ -3,3 +3,10 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@trigger.dev/core@4.5.5'
+  - '@trigger.dev/react-hooks@4.5.5'
+  - '@trigger.dev/sdk@4.5.5'
+  - '@trigger.dev/build@4.5.5'
+  - '@trigger.dev/schema-to-json@4.5.5'
+  - trigger.dev@4.5.5
