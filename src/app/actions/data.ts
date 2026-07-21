@@ -34,6 +34,7 @@ import {
 } from "@/lib/intelligence/supabase-prospect-intelligence";
 import { prepareManualContact } from "@/lib/services/manual-contact-service";
 import { recordManualContactSchema } from "@/lib/domain/manual-contact";
+import { discoveryRequestSchema } from "@/lib/validation/discovery-request-schema";
 
 export type ActionResult<T> =
   { ok: true; data: T } | { ok: false; error: string };
@@ -83,9 +84,7 @@ export async function completeSearchAction(id: unknown) {
 
 export async function discoverBusinessesAction(input: unknown) {
   try {
-    const values = searchFormSchema
-      .extend({ confirmRepeated: z.boolean().optional().default(false) })
-      .parse(input);
+    const values = discoveryRequestSchema.parse(input);
     const [client, owner] = await Promise.all([createClient(), requireOwner()]);
     const providerInput = {
       niche: values.query,
