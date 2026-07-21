@@ -28,6 +28,10 @@ import {
   prospectFormSchema,
   searchFormSchema,
 } from "@/lib/validation";
+import {
+  analyzeProspectWithOpenAI,
+  generateProposalWithOpenAI,
+} from "@/lib/intelligence/supabase-prospect-intelligence";
 
 export type ActionResult<T> =
   { ok: true; data: T } | { ok: false; error: string };
@@ -290,6 +294,30 @@ export async function getProspectWebsiteAnalysisStatusAction(
       .maybeSingle();
     if (error) throw new RepositoryError("No se pudo consultar el análisis.");
     return data;
+  });
+}
+
+export async function analyzeProspectWithAiAction(
+  id: unknown,
+  forceInput: unknown = false,
+) {
+  return execute(async () => {
+    const prospectId = z.string().uuid().parse(id);
+    const force = z.boolean().parse(forceInput);
+    const result = await analyzeProspectWithOpenAI(prospectId, force);
+    revalidatePath("/prospectos");
+    revalidatePath("/");
+    return result;
+  });
+}
+
+export async function generateProposalWithAiAction(id: unknown) {
+  return execute(async () => {
+    const prospectId = z.string().uuid().parse(id);
+    const result = await generateProposalWithOpenAI(prospectId);
+    revalidatePath("/propuestas");
+    revalidatePath("/prospectos");
+    return result;
   });
 }
 

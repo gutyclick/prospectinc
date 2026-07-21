@@ -1,5 +1,11 @@
 # Arquitectura de Prospector AI
 
+## Inteligencia de prospectos y propuestas
+
+`ProspectIntelligenceProvider` separa la aplicación del proveedor. Producción usa `OpenAIProspectIntelligenceProvider` con Responses API y salida estructurada validada por Zod; las pruebas usan `FakeProspectIntelligenceProvider`. La clave y el modelo se leen exclusivamente en servidor.
+
+Los análisis parten de auditorías y contactos verificados, se identifican por hash, respetan un límite diario y se guardan en `ai_analyses` junto con modelo, versión del prompt y tokens disponibles. El puntaje final es híbrido y la IA controla como máximo un 10%. Las propuestas generadas se guardan como borradores editables y nunca se envían automáticamente.
+
 ## Principios
 
 - Monolito modular en una sola aplicación Next.js.

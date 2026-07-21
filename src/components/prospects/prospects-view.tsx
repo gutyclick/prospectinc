@@ -1,12 +1,14 @@
 "use client";
 
-import { Download, Plus } from "lucide-react";
+import { Download, Plus, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import {
   addExclusionAction,
+  analyzeProspectWithAiAction,
   createProspectAction,
+  generateProposalWithAiAction,
   getProspectWebsiteAnalysisStatusAction,
   reanalyzeProspectWebsiteAction,
   updateProspectStatusAction,
@@ -22,6 +24,7 @@ import { downloadProspectsCsv } from "@/lib/utils/prospect-csv";
 import type { ProspectFormValues } from "@/lib/validation";
 import type { WebsiteAuditView } from "@/lib/services/website-audit-query";
 import type { WebsiteAuditResult } from "@/lib/domain/website-audit";
+import type { ProspectIntelligenceView } from "@/lib/intelligence/supabase-prospect-intelligence";
 
 import { AddProspectModal } from "./add-prospect-modal";
 import { ProspectFilters } from "./prospect-filters";
@@ -35,10 +38,12 @@ export function ProspectsView({
   initialProspects,
   initialFilters,
   initialAudits = {},
+  initialIntelligence = {},
 }: {
   initialProspects: Prospect[];
   initialFilters: ProspectFilterValues;
   initialAudits?: Record<string, WebsiteAuditView>;
+  initialIntelligence?: Record<string, ProspectIntelligenceView>;
 }) {
   const [prospects, setProspects] = useState(initialProspects);
   const [filters, setFilters] = useState(initialFilters);
@@ -52,6 +57,9 @@ export function ProspectsView({
     startedAt: string;
   } | null>(null);
   const [audits, setAudits] = useState(initialAudits);
+  const [intelligence, setIntelligence] = useState(initialIntelligence);
+  const [isAnalyzingWithAi, setIsAnalyzingWithAi] = useState(false);
+  const [isBatchAnalyzing, setIsBatchAnalyzing] = useState(false);
 
   useEffect(() => {
     if (!activeWebsiteAnalysis) return;
@@ -221,6 +229,103 @@ export function ProspectsView({
     );
   }
 
+  async function analyzeWithAi() {
+    if (!selectedProspect) return;
+    const force = Boolean(intelligence[selectedProspect.id]);
+    if (
+      force &&
+      !window.confirm(
+        "¿Regenerar la evaluación con IA? Consumirá una nueva operación.",
+      )
+    )
+      return;
+    setIsAnalyzingWithAi(true);
+    const result = await analyzeProspectWithAiAction(
+      selectedProspect.id,
+      force,
+    );
+    setIsAnalyzingWithAi(false);
+    if (!result.ok) return setNotification(result.error);
+    setIntelligence((current) => ({
+      ...current,
+      [selectedProspect.id]: {
+        ...result.data.output,
+        createdAt: new Date().toISOString(),
+      },
+    }));
+    setProspects((current) =>
+      current.map((item) =>
+        item.id === selectedProspect.id
+          ? {
+              ...item,
+              opportunityScore: result.data.finalScore,
+              recommendedOffer: result.data.output.recommendedOffer,
+              aiSummary: result.data.output.summary,
+              detectedOpportunities:
+                result.data.output.inferredProblems.length > 0
+                  ? result.data.output.inferredProblems
+                  : item.detectedOpportunities,
+            }
+          : item,
+      ),
+    );
+    setNotification(
+      result.data.cached
+        ? "Se reutilizó un análisis idéntico."
+        : "Evaluación con IA completada; revisa sus inferencias.",
+    );
+  }
+
+  async function createAiProposal() {
+    if (!selectedProspect) return;
+    const result = await generateProposalWithAiAction(selectedProspect.id);
+    setNotification(
+      result.ok
+        ? "Borrador generado y guardado en Propuestas. No se envió ningún mensaje."
+        : result.error,
+    );
+  }
+
+  async function analyzeVisibleBatch() {
+    const eligible = visibleProspects
+      .filter(
+        (prospect) =>
+          prospect.commercialStatus !== "descartado" &&
+          audits[prospect.id]?.status === "completada" &&
+          !intelligence[prospect.id],
+      )
+      .slice(0, 10);
+    if (eligible.length === 0)
+      return setNotification(
+        "No hay prospectos visibles pendientes con auditoría completada.",
+      );
+    if (
+      !window.confirm(
+        `¿Analizar ${eligible.length} prospectos con IA? Esta acción consume la cuota diaria.`,
+      )
+    )
+      return;
+    setIsBatchAnalyzing(true);
+    let completed = 0;
+    for (const prospect of eligible) {
+      const result = await analyzeProspectWithAiAction(prospect.id, false);
+      if (result.ok) {
+        completed += 1;
+        setIntelligence((current) => ({
+          ...current,
+          [prospect.id]: {
+            ...result.data.output,
+            createdAt: new Date().toISOString(),
+          },
+        }));
+      }
+    }
+    setIsBatchAnalyzing(false);
+    setNotification(
+      `Análisis manual finalizado: ${completed} de ${eligible.length}.`,
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -228,6 +333,17 @@ export function ProspectsView({
         description="Gestiona, analiza y prioriza tus mejores oportunidades comerciales."
         action={
           <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => void analyzeVisibleBatch()}
+              disabled={isBatchAnalyzing}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-violet-200 px-4 text-sm font-semibold text-violet-700 disabled:opacity-50"
+            >
+              <Sparkles className="size-4" aria-hidden="true" />
+              {isBatchAnalyzing
+                ? "Analizando lote…"
+                : "Analizar visibles con IA"}
+            </button>
             <button
               type="button"
               onClick={exportVisibleProspects}
@@ -298,6 +414,14 @@ export function ProspectsView({
           audit={
             selectedProspect ? (audits[selectedProspect.id] ?? null) : null
           }
+          intelligence={
+            selectedProspect
+              ? (intelligence[selectedProspect.id] ?? null)
+              : null
+          }
+          isAnalyzingWithAi={isAnalyzingWithAi}
+          onAnalyzeWithAi={() => void analyzeWithAi()}
+          onCreateAiProposal={() => void createAiProposal()}
         />
       </div>
 

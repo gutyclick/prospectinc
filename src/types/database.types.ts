@@ -494,6 +494,7 @@ export type Database = {
           delivery_time: string
           email_body: string | null
           email_subject: string | null
+          generated_content: Json | null
           gmail_draft_id: string | null
           gmail_thread_id: string | null
           headline: string | null
@@ -518,6 +519,7 @@ export type Database = {
           delivery_time: string
           email_body?: string | null
           email_subject?: string | null
+          generated_content?: Json | null
           gmail_draft_id?: string | null
           gmail_thread_id?: string | null
           headline?: string | null
@@ -542,6 +544,7 @@ export type Database = {
           delivery_time?: string
           email_body?: string | null
           email_subject?: string | null
+          generated_content?: Json | null
           gmail_draft_id?: string | null
           gmail_thread_id?: string | null
           headline?: string | null

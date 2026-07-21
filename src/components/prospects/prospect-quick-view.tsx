@@ -14,6 +14,7 @@ import { SectionCard } from "@/components/ui/section-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { CommercialStatus, Prospect } from "@/lib/domain";
 import type { WebsiteAuditView } from "@/lib/services/website-audit-query";
+import type { ProspectIntelligenceView } from "@/lib/intelligence/supabase-prospect-intelligence";
 import {
   commercialStatusLabels,
   websiteStatusLabels,
@@ -27,6 +28,10 @@ export function ProspectQuickView({
   onReanalyze,
   isAnalyzing = false,
   audit,
+  intelligence,
+  isAnalyzingWithAi,
+  onAnalyzeWithAi,
+  onCreateAiProposal,
 }: {
   prospect: Prospect | null;
   onSave: () => void;
@@ -35,6 +40,10 @@ export function ProspectQuickView({
   onReanalyze: () => void;
   isAnalyzing?: boolean;
   audit: WebsiteAuditView | null;
+  intelligence: ProspectIntelligenceView | null;
+  isAnalyzingWithAi: boolean;
+  onAnalyzeWithAi: () => void;
+  onCreateAiProposal: () => void;
 }) {
   if (!prospect) {
     return (
@@ -277,6 +286,65 @@ export function ProspectQuickView({
         </section>
       ) : null}
 
+      <section
+        className="space-y-3 border-t border-slate-100 pt-4"
+        aria-label="Evaluación con inteligencia artificial"
+      >
+        <h3 className="text-sm font-semibold text-slate-950">Evaluación IA</h3>
+        {intelligence ? (
+          <>
+            <p className="text-sm leading-6 text-slate-600">
+              {intelligence.summary}
+            </p>
+            <EvidenceList
+              title="Hechos verificados"
+              items={intelligence.verifiedFacts}
+            />
+            <EvidenceList
+              title="Inferencias"
+              items={intelligence.inferredProblems}
+            />
+            <EvidenceList
+              title="Incertidumbres"
+              items={intelligence.uncertainties}
+              warning
+            />
+            <p className="text-sm">
+              <strong>Recomendación:</strong> {intelligence.recommendedOffer}
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-slate-500">
+            Aún no existe una evaluación. Requiere una auditoría web completada.
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onAnalyzeWithAi}
+            disabled={
+              isAnalyzingWithAi || !audit || audit.status !== "completada"
+            }
+            className="min-h-11 rounded-xl border border-violet-200 px-3 text-sm font-semibold text-violet-700 disabled:opacity-50"
+          >
+            {isAnalyzingWithAi
+              ? "Analizando…"
+              : intelligence
+                ? "Regenerar análisis"
+                : "Analizar con IA"}
+          </button>
+          {intelligence ? (
+            <button
+              type="button"
+              onClick={onCreateAiProposal}
+              className="min-h-11 rounded-xl bg-blue-600 px-3 text-sm font-semibold text-white"
+            >
+              Crear propuesta con IA
+            </button>
+          ) : null}
+        </div>
+      </section>
+
       <div className="grid gap-2 border-t border-slate-100 pt-4 sm:grid-cols-2">
         {prospect.websiteUrl ? (
           <button
@@ -322,5 +390,34 @@ export function ProspectQuickView({
         ) : null}
       </div>
     </SectionCard>
+  );
+}
+
+function EvidenceList({
+  title,
+  items,
+  warning = false,
+}: {
+  title: string;
+  items: string[];
+  warning?: boolean;
+}) {
+  return (
+    <div>
+      <h4 className="text-xs font-semibold text-slate-500 uppercase">
+        {title}
+      </h4>
+      {items.length > 0 ? (
+        <ul
+          className={`mt-1 list-disc pl-5 text-sm ${warning ? "text-amber-800" : "text-slate-600"}`}
+        >
+          {items.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-1 text-sm text-slate-500">Sin elementos.</p>
+      )}
+    </div>
   );
 }
