@@ -6,6 +6,10 @@
 
 Los análisis parten de auditorías y contactos verificados, se identifican por hash, respetan un límite diario y se guardan en `ai_analyses` junto con modelo, versión del prompt y tokens disponibles. El puntaje final es híbrido y la IA controla como máximo un 10%. Las propuestas generadas se guardan como borradores editables y nunca se envían automáticamente.
 
+## Contacto manual
+
+Los enlaces `mailto:` y `wa.me` se preparan en la interfaz, pero abrirlos nunca se registra como envío. La RPC `record_manual_outreach` exige una propuesta revisada, contacto público verificado con fuente, ausencia de exclusión y confirmación humana; luego registra mensaje, conversación, actividad y seguimiento en una transacción. No existen envíos en lote, temporizadores de envío ni automatización de clics. Las respuestas recibidas se incorporan únicamente mediante registro manual explícito.
+
 ## Principios
 
 - Monolito modular en una sola aplicación Next.js.

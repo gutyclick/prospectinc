@@ -6,9 +6,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import {
   createProposalAction,
+  prepareManualContactAction,
   updateProposalStatusAction,
 } from "@/app/actions/data";
 import { ProposalFormModal } from "@/components/proposals/proposal-form-modal";
+import { ContactPreparationModal } from "@/components/proposals/contact-preparation-modal";
 import { ProposalMetrics } from "@/components/proposals/proposal-metrics";
 import { ProposalPerformance } from "@/components/proposals/proposal-performance";
 import { ProposalPreview } from "@/components/proposals/proposal-preview";
@@ -20,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import type { Proposal, Prospect } from "@/lib/domain";
 import type { ProposalFormValues } from "@/lib/validation";
+import type { PreparedContact } from "@/lib/domain/manual-contact";
 
 const initialFilters: ProposalFilters = {
   query: "",
@@ -44,6 +47,8 @@ export function ProposalsView({
   const [formOpen, setFormOpen] = useState(Boolean(initialProspectId));
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [notice, setNotice] = useState("");
+  const [preparedContact, setPreparedContact] =
+    useState<PreparedContact | null>(null);
 
   useEffect(() => {
     if (!confirmOpen) return;
@@ -121,6 +126,26 @@ export function ProposalsView({
     );
   }
 
+  async function prepareContact(channel: "correo" | "whatsapp") {
+    if (!selected) return;
+    const result = await prepareManualContactAction(selected.id, channel);
+    if (!result.ok) return setNotice(result.error);
+    setPreparedContact(result.data);
+  }
+
+  function contactRecorded(message: string) {
+    if (selected) {
+      setProposals((current) =>
+        current.map((proposal) =>
+          proposal.id === selected.id
+            ? { ...proposal, status: "enviada" }
+            : proposal,
+        ),
+      );
+    }
+    setNotice(message);
+  }
+
   return (
     <div className="min-w-0 space-y-5">
       <PageHeader
@@ -159,6 +184,8 @@ export function ProposalsView({
           prospect={selectedProspect}
           onSave={() => void setStatus("borrador")}
           onReady={() => setConfirmOpen(true)}
+          onPrepareEmail={() => void prepareContact("correo")}
+          onPrepareWhatsapp={() => void prepareContact("whatsapp")}
         />
       </div>
       <ProposalPerformance
@@ -172,6 +199,14 @@ export function ProposalsView({
         onClose={() => setFormOpen(false)}
         onCreate={create}
       />
+      {preparedContact ? (
+        <ContactPreparationModal
+          key={`${preparedContact.proposalId}-${preparedContact.channel}`}
+          prepared={preparedContact}
+          onClose={() => setPreparedContact(null)}
+          onRecorded={contactRecorded}
+        />
+      ) : null}
       {confirmOpen ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
           <section

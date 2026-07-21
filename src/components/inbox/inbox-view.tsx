@@ -7,6 +7,7 @@ import {
   getDraftResponseAction,
   getInboxItemsAction,
   markResponseSentAction,
+  recordManualInboundAction,
   saveDraftResponseAction,
   transitionConversationAction,
 } from "@/app/actions/data";
@@ -47,6 +48,7 @@ export function InboxView({
     initialSelected?.followUpAt?.slice(0, 16) ?? "",
   );
   const [notice, setNotice] = useState("");
+  const [receivedResponse, setReceivedResponse] = useState("");
   const filtered = useMemo(
     () => items.filter((item) => matchesInboxFilter(item, filter)),
     [filter, items],
@@ -118,6 +120,16 @@ export function InboxView({
       return;
     }
     await refresh("Seguimiento programado correctamente.");
+  }
+  async function recordInbound() {
+    if (!selected || !receivedResponse.trim()) return;
+    const result = await recordManualInboundAction(
+      selected.id,
+      receivedResponse.trim(),
+    );
+    if (!result.ok) return setNotice(result.error);
+    setReceivedResponse("");
+    await refresh("Respuesta recibida registrada manualmente.");
   }
   async function negotiation() {
     if (!selected) return;
@@ -219,8 +231,11 @@ export function InboxView({
               classification={classification}
               response={response}
               followUpAt={followUpAt}
+              receivedResponse={receivedResponse}
               onResponseChange={setResponse}
               onFollowUpChange={setFollowUpAt}
+              onReceivedResponseChange={setReceivedResponse}
+              onRecordInbound={() => void recordInbound()}
               onBack={() => setDetailVisible(false)}
               onSave={() => void saveResponse()}
               onSent={() => void markSent()}

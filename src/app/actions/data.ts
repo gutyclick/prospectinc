@@ -32,6 +32,8 @@ import {
   analyzeProspectWithOpenAI,
   generateProposalWithOpenAI,
 } from "@/lib/intelligence/supabase-prospect-intelligence";
+import { prepareManualContact } from "@/lib/services/manual-contact-service";
+import { recordManualContactSchema } from "@/lib/domain/manual-contact";
 
 export type ActionResult<T> =
   { ok: true; data: T } | { ok: false; error: string };
@@ -485,9 +487,103 @@ export async function updateProposalStatusAction(id: unknown, status: unknown) {
       proposalId,
       proposalStatus,
     );
+    if (proposalStatus === "lista") {
+      const client = await createClient();
+      await requireOwner();
+      await client.rpc("prepare_proposal_conversation", {
+        proposal_id: proposalId,
+      });
+      revalidatePath("/bandeja");
+    }
     revalidatePath("/propuestas");
     revalidatePath("/");
     return proposal;
+  });
+}
+
+export async function prepareManualContactAction(
+  id: unknown,
+  channelInput: unknown,
+) {
+  return execute(async () => {
+    const proposalId = z.string().uuid().parse(id);
+    const channel = z.enum(["correo", "whatsapp"]).parse(channelInput);
+    return prepareManualContact(proposalId, channel);
+  });
+}
+
+export async function recordManualContactAction(input: unknown) {
+  return execute(async () => {
+    const values = recordManualContactSchema.parse(input);
+    const prepared = await prepareManualContact(
+      values.proposalId,
+      values.channel,
+    );
+    if (prepared.contactPointId !== values.contactPointId)
+      throw new RepositoryError(
+        "El contacto preparado ya no está disponible.",
+        "validation",
+      );
+    const client = await createClient();
+    await requireOwner();
+    const { data, error } = await client.rpc("record_manual_outreach", {
+      proposal_id: values.proposalId,
+      contact_point_id: values.contactPointId,
+      outreach_channel: values.channel,
+      message_subject: values.subject,
+      message_body: values.body,
+      allow_repeat: values.allowRepeat,
+      daily_limit: Math.min(
+        500,
+        Math.max(1, Number(process.env.MANUAL_CONTACT_DAILY_LIMIT ?? 25)),
+      ),
+      follow_up_time: values.followUpAt ?? undefined,
+    });
+    if (error) {
+      const known = [
+        "excluido",
+        "límite diario",
+        "contacto reciente",
+        "revisada",
+        "utilizable",
+      ];
+      const message = known.find((fragment) =>
+        error.message.toLowerCase().includes(fragment),
+      )
+        ? error.message
+        : "No se pudo registrar el contacto manual.";
+      throw new RepositoryError(message, "validation");
+    }
+    revalidatePath("/propuestas");
+    revalidatePath("/prospectos");
+    revalidatePath("/bandeja");
+    revalidatePath("/");
+    return { conversationId: data };
+  });
+}
+
+export async function recordManualInboundAction(
+  id: unknown,
+  bodyInput: unknown,
+) {
+  return execute(async () => {
+    const conversationId = z.string().uuid().parse(id);
+    const body = z.string().trim().min(1).max(10_000).parse(bodyInput);
+    const client = await createClient();
+    await requireOwner();
+    const { error } = await client.rpc("record_manual_inbound", {
+      conversation_id: conversationId,
+      message_body: body,
+    });
+    if (error)
+      throw new RepositoryError(
+        "No se pudo registrar la respuesta recibida.",
+        "validation",
+      );
+    revalidatePath("/bandeja");
+    revalidatePath("/prospectos");
+    revalidatePath("/");
+    return { conversationId };
   });
 }
 

@@ -901,6 +901,27 @@ export type Database = {
         }
         Returns: Json
       }
+      prepare_proposal_conversation: {
+        Args: { proposal_id: string }
+        Returns: string
+      }
+      record_manual_inbound: {
+        Args: { conversation_id: string; message_body: string }
+        Returns: undefined
+      }
+      record_manual_outreach: {
+        Args: {
+          allow_repeat?: boolean
+          contact_point_id: string
+          daily_limit?: number
+          follow_up_time?: string
+          message_body: string
+          message_subject: string
+          outreach_channel: Database["public"]["Enums"]["conversation_channel"]
+          proposal_id: string
+        }
+        Returns: string
+      }
       transition_conversation: {
         Args: {
           action_text?: string

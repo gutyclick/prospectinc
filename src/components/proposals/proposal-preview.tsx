@@ -1,4 +1,4 @@
-import { Check, Save, Send } from "lucide-react";
+import { Check, Mail, MessageCircle, Save, Send } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
@@ -17,11 +17,15 @@ export function ProposalPreview({
   prospect,
   onSave,
   onReady,
+  onPrepareEmail,
+  onPrepareWhatsapp,
 }: {
   proposal: Proposal | null;
   prospect: Prospect | null;
   onSave: () => void;
   onReady: () => void;
+  onPrepareEmail: () => void;
+  onPrepareWhatsapp: () => void;
 }) {
   if (!proposal || !prospect)
     return (
@@ -95,6 +99,28 @@ export function ProposalPreview({
         >
           <Send className="size-4" aria-hidden="true" /> Enviar propuesta
         </Button>
+      </div>
+      <div className="grid gap-2 border-t border-slate-100 pt-4 sm:grid-cols-2">
+        <Button
+          variant="outline"
+          onClick={onPrepareEmail}
+          disabled={!["lista", "enviada"].includes(proposal.status)}
+        >
+          <Mail className="size-4" /> Preparar correo
+        </Button>
+        <Button
+          variant="outline"
+          onClick={onPrepareWhatsapp}
+          disabled={!["lista", "enviada"].includes(proposal.status)}
+        >
+          <MessageCircle className="size-4" /> Preparar WhatsApp
+        </Button>
+        {!["lista", "enviada"].includes(proposal.status) ? (
+          <p className="text-xs text-slate-500 sm:col-span-2">
+            Revisa la propuesta y márcala como lista antes de preparar un
+            contacto.
+          </p>
+        ) : null}
       </div>
     </SectionCard>
   );
