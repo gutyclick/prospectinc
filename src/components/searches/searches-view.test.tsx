@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -30,7 +30,7 @@ async function completeForm(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Iniciar análisis" }));
 }
 
-describe("flujo de búsquedas simuladas", () => {
+describe("flujo de búsquedas reales", () => {
   beforeEach(() => {
     searchRepository.reset();
   });
@@ -42,17 +42,8 @@ describe("flujo de búsquedas simuladas", () => {
     await completeForm(user);
 
     const progressbar = await screen.findByRole("progressbar");
-    expect(
-      Number(progressbar.getAttribute("aria-valuenow")),
-    ).toBeGreaterThanOrEqual(25);
-    expect(screen.getAllByText("Buscando negocios")).not.toHaveLength(0);
-
-    await waitFor(() => {
-      expect(
-        Number(progressbar.getAttribute("aria-valuenow")),
-      ).toBeGreaterThanOrEqual(50);
-    });
-    expect(await screen.findByText(/Análisis completado:/)).toBeInTheDocument();
+    expect(Number(progressbar.getAttribute("aria-valuenow"))).toBe(15);
+    expect(await screen.findByText(/Búsqueda completada:/)).toBeInTheDocument();
   });
 
   it("actualiza los resultados sin recargar al completar el análisis", async () => {
@@ -61,10 +52,10 @@ describe("flujo de búsquedas simuladas", () => {
 
     await completeForm(user);
 
-    expect(await screen.findByText(/Análisis completado:/)).toBeInTheDocument();
+    expect(await screen.findByText(/Búsqueda completada:/)).toBeInTheDocument();
     expect(screen.getAllByText("Veterinarias")).not.toHaveLength(0);
     expect(
-      screen.getByText(/Se completó la búsqueda simulada de Veterinarias/),
+      screen.getByRole("link", { name: "Abrir prospectos encontrados" }),
     ).toBeInTheDocument();
   });
 
@@ -79,5 +70,20 @@ describe("flujo de búsquedas simuladas", () => {
     await user.click(screen.getByRole("button", { name: "Analizando" }));
     expect(screen.getByText("Talleres automotrices")).toBeInTheDocument();
     expect(screen.queryByText("Clínicas dentales")).not.toBeInTheDocument();
+  });
+
+  it("expone atribución y prepara el análisis sin fingir que terminó", async () => {
+    const user = userEvent.setup();
+    await renderSearchesView();
+
+    expect(
+      screen.getByText(/datos temporales proporcionados por/i),
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getAllByRole("button", { name: "Analizar sitios encontrados" })[0],
+    );
+    expect(
+      await screen.findByText(/no implica que el análisis haya finalizado/i),
+    ).toBeInTheDocument();
   });
 });

@@ -1,14 +1,15 @@
 import { ProposalsView } from "@/components/proposals/proposals-view";
-import { proposalRepository, prospectRepository } from "@/lib/repositories";
+import { getRepositories } from "@/lib/repositories";
 
 export default async function PropuestasPage({
   searchParams,
 }: {
   searchParams: Promise<{ prospectId?: string }>;
 }) {
+  const repositories = await getRepositories();
   const [proposals, prospects, params] = await Promise.all([
-    proposalRepository.getAll(),
-    prospectRepository.getAll(),
+    repositories.proposals.getAll(),
+    repositories.prospects.getAll(),
     searchParams,
   ]);
   const validProspectId = prospects.some(

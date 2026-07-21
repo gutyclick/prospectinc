@@ -1,18 +1,30 @@
 "use client";
 
-import { Download, Plus } from "lucide-react";
+import { Download, Plus, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { PageHeader } from "@/components/layout/page-header";
+import {
+  addExclusionAction,
+  analyzeProspectWithAiAction,
+  createProspectAction,
+  generateProposalWithAiAction,
+  getProspectWebsiteAnalysisStatusAction,
+  reanalyzeProspectWebsiteAction,
+  updateProspectStatusAction,
+} from "@/app/actions/data";
 import type { Prospect } from "@/lib/domain";
+import type { CommercialStatus } from "@/lib/domain";
 import {
   applyProspectFilters,
   prospectFiltersToSearchParams,
   type ProspectFilters as ProspectFilterValues,
 } from "@/lib/domain/prospect-filters";
-import { prospectRepository } from "@/lib/repositories";
 import { downloadProspectsCsv } from "@/lib/utils/prospect-csv";
 import type { ProspectFormValues } from "@/lib/validation";
+import type { WebsiteAuditView } from "@/lib/services/website-audit-query";
+import type { WebsiteAuditResult } from "@/lib/domain/website-audit";
+import type { ProspectIntelligenceView } from "@/lib/intelligence/supabase-prospect-intelligence";
 
 import { AddProspectModal } from "./add-prospect-modal";
 import { ProspectFilters } from "./prospect-filters";
@@ -25,9 +37,13 @@ import { StatusDistribution } from "./status-distribution";
 export function ProspectsView({
   initialProspects,
   initialFilters,
+  initialAudits = {},
+  initialIntelligence = {},
 }: {
   initialProspects: Prospect[];
   initialFilters: ProspectFilterValues;
+  initialAudits?: Record<string, WebsiteAuditView>;
+  initialIntelligence?: Record<string, ProspectIntelligenceView>;
 }) {
   const [prospects, setProspects] = useState(initialProspects);
   const [filters, setFilters] = useState(initialFilters);
@@ -36,6 +52,73 @@ export function ProspectsView({
   );
   const [modalOpen, setModalOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+  const [activeWebsiteAnalysis, setActiveWebsiteAnalysis] = useState<{
+    prospectId: string;
+    startedAt: string;
+  } | null>(null);
+  const [audits, setAudits] = useState(initialAudits);
+  const [intelligence, setIntelligence] = useState(initialIntelligence);
+  const [isAnalyzingWithAi, setIsAnalyzingWithAi] = useState(false);
+  const [isBatchAnalyzing, setIsBatchAnalyzing] = useState(false);
+
+  useEffect(() => {
+    if (!activeWebsiteAnalysis) return;
+    const active = activeWebsiteAnalysis;
+    const timer = window.setInterval(async () => {
+      const result = await getProspectWebsiteAnalysisStatusAction(
+        active.prospectId,
+        active.startedAt,
+      );
+      if (!result.ok || !result.data) return;
+      const data = result.data;
+      setAudits((current) => ({
+        ...current,
+        [active.prospectId]: {
+          ...(current[active.prospectId] ?? {
+            id: data.id,
+            prospectId: active.prospectId,
+            resultStatus: null,
+            analyzedAt: null,
+            errorMessage: null,
+            facts: {},
+            warnings: [],
+            screenshotUrl: null,
+            contacts: [],
+          }),
+          status: data.status,
+          progress: data.progress,
+          resultStatus: data.result_status as WebsiteAuditResult | null,
+          analyzedAt: data.analyzed_at,
+          errorMessage: data.error_message,
+          facts:
+            data.facts &&
+            typeof data.facts === "object" &&
+            !Array.isArray(data.facts)
+              ? data.facts
+              : {},
+          warnings:
+            data.facts &&
+            typeof data.facts === "object" &&
+            !Array.isArray(data.facts) &&
+            Array.isArray(data.facts.warnings)
+              ? data.facts.warnings.filter(
+                  (item): item is string => typeof item === "string",
+                )
+              : [],
+        },
+      }));
+      if (result.data.status === "completada") {
+        setActiveWebsiteAnalysis(null);
+        setNotification("El análisis del sitio finalizó correctamente.");
+      } else if (result.data.status === "fallida") {
+        setActiveWebsiteAnalysis(null);
+        setNotification(
+          result.data.error_message ?? "El análisis del sitio falló.",
+        );
+      }
+    }, 2_000);
+    return () => window.clearInterval(timer);
+  }, [activeWebsiteAnalysis]);
 
   const visibleProspects = useMemo(
     () => applyProspectFilters(prospects, filters),
@@ -59,19 +142,187 @@ export function ProspectsView({
   }
 
   async function addProspect(values: ProspectFormValues) {
-    const prospect = await prospectRepository.createProspect(values);
+    const result = await createProspectAction(values);
+    if (!result.ok) {
+      setNotification(result.error);
+      return;
+    }
+    const prospect = result.data;
     setProspects((current) => [prospect, ...current]);
     setSelectedId(prospect.id);
     setModalOpen(false);
-    setNotification(
-      `${prospect.businessName} se añadió al repositorio simulado.`,
-    );
+    setNotification(`${prospect.businessName} se guardó correctamente.`);
   }
 
   function exportVisibleProspects() {
     downloadProspectsCsv(visibleProspects);
     setNotification(
       `Se exportaron ${visibleProspects.length} prospectos visibles.`,
+    );
+  }
+
+  async function changeStatus(status: CommercialStatus) {
+    if (!selectedProspect) return;
+    const result = await updateProspectStatusAction(
+      selectedProspect.id,
+      status,
+    );
+    if (!result.ok) {
+      setNotification(result.error);
+      return;
+    }
+    setProspects((current) =>
+      current.map((item) => (item.id === result.data.id ? result.data : item)),
+    );
+    setNotification("Estado comercial actualizado.");
+  }
+
+  async function excludePrimaryContact() {
+    if (!selectedProspect) return;
+    const contact = selectedProspect.publicEmail
+      ? { type: "email" as const, value: selectedProspect.publicEmail }
+      : selectedProspect.publicWhatsapp
+        ? { type: "whatsapp" as const, value: selectedProspect.publicWhatsapp }
+        : selectedProspect.publicPhone
+          ? { type: "phone" as const, value: selectedProspect.publicPhone }
+          : null;
+    if (
+      !contact ||
+      !window.confirm(`¿Añadir ${contact.value} a la lista de exclusión?`)
+    )
+      return;
+    const result = await addExclusionAction({
+      type: contact.type,
+      normalizedValue: contact.value.trim().toLowerCase(),
+      reason: "Exclusión manual desde Prospectos",
+    });
+    setNotification(
+      result.ok ? "Contacto añadido a la lista de exclusión." : result.error,
+    );
+  }
+
+  async function reanalyzeWebsite() {
+    if (!selectedProspect) return;
+    const existing = audits[selectedProspect.id];
+    const force = existing?.status === "completada";
+    if (
+      force &&
+      !window.confirm(
+        "Ya existe una auditoría reciente. ¿Quieres volver a analizar el sitio?",
+      )
+    )
+      return;
+    const result = await reanalyzeProspectWebsiteAction(
+      selectedProspect.id,
+      force,
+    );
+    if (!result.ok) {
+      setNotification(result.error);
+      return;
+    }
+    setActiveWebsiteAnalysis({
+      prospectId: selectedProspect.id,
+      startedAt: result.data.startedAt,
+    });
+    setNotification(
+      "El análisis del sitio se inició en segundo plano. Su estado se actualizará al finalizar.",
+    );
+  }
+
+  async function analyzeWithAi() {
+    if (!selectedProspect) return;
+    const force = Boolean(intelligence[selectedProspect.id]);
+    if (
+      force &&
+      !window.confirm(
+        "¿Regenerar la evaluación con IA? Consumirá una nueva operación.",
+      )
+    )
+      return;
+    setIsAnalyzingWithAi(true);
+    const result = await analyzeProspectWithAiAction(
+      selectedProspect.id,
+      force,
+    );
+    setIsAnalyzingWithAi(false);
+    if (!result.ok) return setNotification(result.error);
+    setIntelligence((current) => ({
+      ...current,
+      [selectedProspect.id]: {
+        ...result.data.output,
+        createdAt: new Date().toISOString(),
+      },
+    }));
+    setProspects((current) =>
+      current.map((item) =>
+        item.id === selectedProspect.id
+          ? {
+              ...item,
+              opportunityScore: result.data.finalScore,
+              recommendedOffer: result.data.output.recommendedOffer,
+              aiSummary: result.data.output.summary,
+              detectedOpportunities:
+                result.data.output.inferredProblems.length > 0
+                  ? result.data.output.inferredProblems
+                  : item.detectedOpportunities,
+            }
+          : item,
+      ),
+    );
+    setNotification(
+      result.data.cached
+        ? "Se reutilizó un análisis idéntico."
+        : "Evaluación con IA completada; revisa sus inferencias.",
+    );
+  }
+
+  async function createAiProposal() {
+    if (!selectedProspect) return;
+    const result = await generateProposalWithAiAction(selectedProspect.id);
+    setNotification(
+      result.ok
+        ? "Borrador generado y guardado en Propuestas. No se envió ningún mensaje."
+        : result.error,
+    );
+  }
+
+  async function analyzeVisibleBatch() {
+    const eligible = visibleProspects
+      .filter(
+        (prospect) =>
+          prospect.commercialStatus !== "descartado" &&
+          audits[prospect.id]?.status === "completada" &&
+          !intelligence[prospect.id],
+      )
+      .slice(0, 10);
+    if (eligible.length === 0)
+      return setNotification(
+        "No hay prospectos visibles pendientes con auditoría completada.",
+      );
+    if (
+      !window.confirm(
+        `¿Analizar ${eligible.length} prospectos con IA? Esta acción consume la cuota diaria.`,
+      )
+    )
+      return;
+    setIsBatchAnalyzing(true);
+    let completed = 0;
+    for (const prospect of eligible) {
+      const result = await analyzeProspectWithAiAction(prospect.id, false);
+      if (result.ok) {
+        completed += 1;
+        setIntelligence((current) => ({
+          ...current,
+          [prospect.id]: {
+            ...result.data.output,
+            createdAt: new Date().toISOString(),
+          },
+        }));
+      }
+    }
+    setIsBatchAnalyzing(false);
+    setNotification(
+      `Análisis manual finalizado: ${completed} de ${eligible.length}.`,
     );
   }
 
@@ -82,6 +333,17 @@ export function ProspectsView({
         description="Gestiona, analiza y prioriza tus mejores oportunidades comerciales."
         action={
           <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => void analyzeVisibleBatch()}
+              disabled={isBatchAnalyzing}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-violet-200 px-4 text-sm font-semibold text-violet-700 disabled:opacity-50"
+            >
+              <Sparkles className="size-4" aria-hidden="true" />
+              {isBatchAnalyzing
+                ? "Analizando lote…"
+                : "Analizar visibles con IA"}
+            </button>
             <button
               type="button"
               onClick={exportVisibleProspects}
@@ -143,6 +405,23 @@ export function ProspectsView({
               `${selectedProspect?.businessName ?? "El prospecto"} se guardó.`,
             )
           }
+          onStatusChange={(status) => void changeStatus(status)}
+          onExclude={() => void excludePrimaryContact()}
+          onReanalyze={() => void reanalyzeWebsite()}
+          isAnalyzing={
+            activeWebsiteAnalysis?.prospectId === selectedProspect?.id
+          }
+          audit={
+            selectedProspect ? (audits[selectedProspect.id] ?? null) : null
+          }
+          intelligence={
+            selectedProspect
+              ? (intelligence[selectedProspect.id] ?? null)
+              : null
+          }
+          isAnalyzingWithAi={isAnalyzingWithAi}
+          onAnalyzeWithAi={() => void analyzeWithAi()}
+          onCreateAiProposal={() => void createAiProposal()}
         />
       </div>
 

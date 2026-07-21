@@ -30,8 +30,11 @@ export function ConversationDetail({
   classification,
   response,
   followUpAt,
+  receivedResponse,
   onResponseChange,
   onFollowUpChange,
+  onReceivedResponseChange,
+  onRecordInbound,
   onBack,
   onSave,
   onSent,
@@ -45,8 +48,11 @@ export function ConversationDetail({
   classification: ConversationClassification;
   response: string;
   followUpAt: string;
+  receivedResponse: string;
   onResponseChange: (value: string) => void;
   onFollowUpChange: (value: string) => void;
+  onReceivedResponseChange: (value: string) => void;
+  onRecordInbound: () => void;
   onBack: () => void;
   onSave: () => void;
   onSent: () => void;
@@ -176,6 +182,29 @@ export function ConversationDetail({
             <Send className="size-4" /> Marcar como enviada
           </Button>
         </div>
+        <section className="mt-5 rounded-xl border border-slate-200 p-4">
+          <h3 className="text-sm font-semibold">
+            Registrar respuesta recibida
+          </h3>
+          <p className="mt-1 text-xs text-slate-500">
+            Copia solamente el contenido necesario de una respuesta que
+            recibiste fuera de Prospector AI.
+          </p>
+          <textarea
+            value={receivedResponse}
+            onChange={(event) => onReceivedResponseChange(event.target.value)}
+            rows={3}
+            className="mt-2 w-full rounded-xl border border-slate-200 p-3 text-sm"
+          />
+          <Button
+            className="mt-2"
+            variant="outline"
+            onClick={onRecordInbound}
+            disabled={!receivedResponse.trim()}
+          >
+            Registrar respuesta
+          </Button>
+        </section>
         <section className="mt-5 rounded-xl border border-slate-200 p-4">
           <h3 className="text-sm font-semibold">Programar seguimiento</h3>
           <div className="mt-2 flex flex-col gap-2 sm:flex-row">

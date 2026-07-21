@@ -9,14 +9,24 @@ import { Search } from "lucide-react";
 
 type SearchHistoryTableProps = {
   searches: SearchRecord[];
+  onRetry?: (id: string) => void;
+  retryingId?: string | null;
+  onAnalyzeSites?: (id: string) => void;
+  analyzingSitesId?: string | null;
 };
 
-export function SearchHistoryTable({ searches }: SearchHistoryTableProps) {
+export function SearchHistoryTable({
+  searches,
+  onRetry,
+  retryingId,
+  onAnalyzeSites,
+  analyzingSitesId,
+}: SearchHistoryTableProps) {
   if (searches.length === 0) {
     return (
       <EmptyState
         title="No hay resultados para este filtro"
-        description="Prueba otro filtro o configura una nueva búsqueda simulada."
+        description="Prueba otro filtro o configura una nueva búsqueda real."
         icon={Search}
       />
     );
@@ -25,7 +35,9 @@ export function SearchHistoryTable({ searches }: SearchHistoryTableProps) {
   return (
     <DataTableShell title="Resultados recientes" minimumWidth="48rem">
       <table className="w-full border-collapse text-left text-sm">
-        <caption className="sr-only">Historial de búsquedas simuladas</caption>
+        <caption className="sr-only">
+          Historial de búsquedas con Google Places
+        </caption>
         <thead className="bg-slate-50/80 text-xs font-semibold text-slate-500">
           <tr>
             {[
@@ -34,7 +46,11 @@ export function SearchHistoryTable({ searches }: SearchHistoryTableProps) {
               "Fecha",
               "Resultados",
               "Oportunidades",
+              "Nuevos / deduplicados",
+              "Con sitio / sin sitio",
+              "Operaciones",
               "Estado",
+              "Acción",
             ].map((heading) => (
               <th key={heading} scope="col" className="px-4 py-3">
                 {heading}
@@ -62,21 +78,63 @@ export function SearchHistoryTable({ searches }: SearchHistoryTableProps) {
                 {search.opportunitiesCount}
               </td>
               <td className="px-4 py-3">
+                {search.insertedCount} / {search.deduplicatedCount}
+              </td>
+              <td className="px-4 py-3">
+                {search.provisionalWebsiteCount} / {search.noWebsiteCount}
+              </td>
+              <td className="px-4 py-3">{search.providerCallCount}</td>
+              <td className="px-4 py-3">
                 <StatusBadge
                   tone={
                     search.status === "completada"
                       ? "green"
                       : search.status === "analizando"
                         ? "orange"
-                        : "neutral"
+                        : search.status === "fallida"
+                          ? "red"
+                          : "neutral"
                   }
                 >
                   {search.status === "completada"
                     ? "Completada"
                     : search.status === "analizando"
                       ? "Analizando"
-                      : "Borrador"}
+                      : search.status === "fallida"
+                        ? "Fallida"
+                        : "Borrador"}
                 </StatusBadge>
+                {search.errorMessage ? (
+                  <p className="mt-1 max-w-56 text-xs text-red-700">
+                    {search.errorMessage}
+                  </p>
+                ) : null}
+              </td>
+              <td className="px-4 py-3">
+                {search.status === "fallida" && onRetry ? (
+                  <button
+                    type="button"
+                    disabled={retryingId === search.id}
+                    onClick={() => onRetry(search.id)}
+                    className="min-h-9 rounded-lg border border-blue-200 px-3 text-xs font-semibold text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-60"
+                  >
+                    {retryingId === search.id ? "Reintentando…" : "Reintentar"}
+                  </button>
+                ) : search.status === "completada" && onAnalyzeSites ? (
+                  <button
+                    type="button"
+                    disabled={
+                      analyzingSitesId === search.id ||
+                      search.provisionalWebsiteCount === 0
+                    }
+                    onClick={() => onAnalyzeSites(search.id)}
+                    className="min-h-9 rounded-lg border border-violet-200 px-3 text-xs font-semibold text-violet-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {analyzingSitesId === search.id
+                      ? "Preparando…"
+                      : "Analizar sitios encontrados"}
+                  </button>
+                ) : null}
               </td>
             </tr>
           ))}

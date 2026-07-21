@@ -2,20 +2,27 @@
 
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRealtimeRun } from "@trigger.dev/react-hooks";
 
 import { RecentActivity } from "@/components/dashboard/recent-activity";
+import {
+  analyzeSearchWebsitesAction,
+  discoverBusinessesAction,
+  getSearchStatusAction,
+  retryDiscoveryAction,
+} from "@/app/actions/data";
 import { PageHeader } from "@/components/layout/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import type { Activity, Search as SearchRecord } from "@/lib/domain";
-import { searchRepository } from "@/lib/repositories";
 import type { SearchFormValues } from "@/lib/validation";
+import type { discoverBusinesses } from "@/trigger/discover-businesses";
 
 import { PanamaOpportunityMap } from "./panama-opportunity-map";
 import { SearchConfigurationForm } from "./search-configuration-form";
 import { SearchHistoryTable } from "./search-history-table";
 import { SearchMetrics } from "./search-metrics";
-import { SearchProgress, SEARCH_STAGES } from "./search-progress";
+import { SearchProgress } from "./search-progress";
 import { SearchSuggestions } from "./search-suggestions";
 import { SmartFilters, type SearchFilter } from "./smart-filters";
 
@@ -24,12 +31,6 @@ type SearchesViewProps = {
   initialActivities: Activity[];
   stageDelayMs?: number;
 };
-
-function delay(milliseconds: number) {
-  return new Promise<void>((resolve) => {
-    window.setTimeout(resolve, milliseconds);
-  });
-}
 
 export function filterSearches(searches: SearchRecord[], filter: SearchFilter) {
   if (filter === "completadas") {
@@ -47,60 +48,169 @@ export function filterSearches(searches: SearchRecord[], filter: SearchFilter) {
 export function SearchesView({
   initialSearches,
   initialActivities,
-  stageDelayMs = 500,
+  stageDelayMs,
 }: SearchesViewProps) {
   const [searches, setSearches] = useState(initialSearches);
-  const [activities, setActivities] = useState(initialActivities);
+  const [activities] = useState(initialActivities);
   const [activeFilter, setActiveFilter] = useState<SearchFilter>("todos");
-  const [activeStage, setActiveStage] = useState(0);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const initialActiveSearch = initialSearches.find(
+    (search) => search.status === "analizando" && Boolean(search.externalRunId),
+  );
+  const [isProcessing, setIsProcessing] = useState(
+    Boolean(initialActiveSearch),
+  );
   const [notification, setNotification] = useState<string | null>(null);
+  const [notificationTone, setNotificationTone] = useState<"success" | "error">(
+    "success",
+  );
+  const [activeRun, setActiveRun] = useState<{
+    runId: string;
+    token: string;
+    searchId: string;
+  } | null>(
+    initialActiveSearch
+      ? {
+          runId: initialActiveSearch.externalRunId ?? "",
+          token: "",
+          searchId: initialActiveSearch.id,
+        }
+      : null,
+  );
+  const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [analyzingSitesId, setAnalyzingSitesId] = useState<string | null>(null);
+  const [repeatedInput, setRepeatedInput] = useState<SearchFormValues | null>(
+    null,
+  );
+  const [latestCompletedSearchId, setLatestCompletedSearchId] = useState<
+    string | null
+  >(null);
 
   const filteredSearches = useMemo(
     () => filterSearches(searches, activeFilter),
     [activeFilter, searches],
   );
+  const { run: realtimeRun } = useRealtimeRun<typeof discoverBusinesses>(
+    activeRun?.runId || undefined,
+    {
+      accessToken: activeRun?.token,
+      enabled: Boolean(activeRun?.runId && activeRun.token),
+    },
+  );
+  const activeSearch = activeRun
+    ? searches.find((search) => search.id === activeRun.searchId)
+    : null;
 
-  async function startSearch(values: SearchFormValues) {
+  useEffect(() => {
+    if (!activeRun) return;
+    const currentRun = activeRun;
+    let cancelled = false;
+    async function refresh() {
+      const result = await getSearchStatusAction(currentRun.searchId);
+      if (cancelled || !result.ok) return;
+      const updated = result.data;
+      setSearches((current) => [
+        updated,
+        ...current.filter((search) => search.id !== updated.id),
+      ]);
+      if (updated.status === "completada") {
+        setIsProcessing(false);
+        setLatestCompletedSearchId(updated.id);
+        setNotificationTone("success");
+        setNotification(
+          `Búsqueda completada: ${updated.insertedCount} negocios nuevos y ${updated.deduplicatedCount} deduplicados.`,
+        );
+        setActiveRun(null);
+      } else if (updated.status === "fallida") {
+        setIsProcessing(false);
+        setNotificationTone("error");
+        setNotification(updated.errorMessage ?? "La tarea de búsqueda falló.");
+        setActiveRun(null);
+      }
+    }
+    void refresh();
+    const timer = window.setInterval(refresh, stageDelayMs ?? 2_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [activeRun, realtimeRun?.metadata, stageDelayMs]);
+
+  async function startSearch(
+    values: SearchFormValues,
+    confirmRepeated = false,
+  ) {
     setNotification(null);
+    setNotificationTone("success");
+    setRepeatedInput(null);
     setIsProcessing(true);
-    setActiveStage(0);
 
     try {
-      const created = await searchRepository.createSearch({
-        query: values.query,
-        location: values.location,
-        resultLimit: values.resultLimit,
-        sources: values.sources,
+      const result = await discoverBusinessesAction({
+        ...values,
+        confirmRepeated,
       });
-      setSearches((current) => [created, ...current]);
-
-      for (let stage = 0; stage < SEARCH_STAGES.length; stage += 1) {
-        setActiveStage(stage);
-        await delay(stageDelayMs);
+      if (!result.ok) {
+        if (result.requiresConfirmation) setRepeatedInput(values);
+        throw new Error(result.error);
       }
-
-      const completed = await searchRepository.completeSearch(created.id);
-      setSearches((current) =>
-        current.map((search) =>
-          search.id === completed.id ? completed : search,
-        ),
-      );
-      setActivities((current) => [
-        {
-          id: `activity-${completed.id}`,
-          type: "busqueda",
-          description: `Se completó la búsqueda simulada de ${completed.query} en ${completed.location}.`,
-          createdAt: new Date().toISOString(),
-        },
-        ...current,
+      const { search: queued, runId, publicAccessToken } = result.data;
+      setSearches((current) => [
+        queued,
+        ...current.filter((item) => item.id !== queued.id),
       ]);
+      setActiveRun({ runId, token: publicAccessToken, searchId: queued.id });
       setNotification(
-        `Análisis completado: ${completed.resultsCount} negocios y ${completed.opportunitiesCount} oportunidades detectadas.`,
+        "La búsqueda fue encolada y continuará en segundo plano.",
       );
-    } finally {
+    } catch (error) {
       setIsProcessing(false);
+      setNotificationTone("error");
+      setNotification(
+        error instanceof Error
+          ? error.message
+          : "No se pudo iniciar la búsqueda. Intenta nuevamente.",
+      );
     }
+  }
+
+  async function retrySearch(searchId: string) {
+    setRetryingId(searchId);
+    setNotification(null);
+    const result = await retryDiscoveryAction(searchId);
+    setRetryingId(null);
+    if (!result.ok) {
+      setNotificationTone("error");
+      setNotification(result.error);
+      return;
+    }
+    setSearches((current) => [
+      result.data.search,
+      ...current.filter((search) => search.id !== searchId),
+    ]);
+    setActiveRun({
+      runId: result.data.runId,
+      token: result.data.publicAccessToken,
+      searchId,
+    });
+    setIsProcessing(true);
+    setNotificationTone("success");
+    setNotification("La búsqueda fallida se volvió a encolar.");
+  }
+
+  async function analyzeSites(searchId: string) {
+    setAnalyzingSitesId(searchId);
+    const result = await analyzeSearchWebsitesAction(searchId);
+    if (!result.ok) {
+      setAnalyzingSitesId(null);
+      setNotificationTone("error");
+      setNotification(result.error);
+      return;
+    }
+    setAnalyzingSitesId(null);
+    setNotificationTone("success");
+    setNotification(
+      "Los sitios provisionales se enviaron al analizador. El botón no implica que el análisis haya finalizado.",
+    );
   }
 
   return (
@@ -121,7 +231,7 @@ export function SearchesView({
 
       <SectionCard
         title="Crear nueva búsqueda"
-        description="Los resultados son simulados y no consultan servicios externos."
+        description="Consulta negocios reales mediante Google Places API (New), sin scraping."
         className="scroll-mt-24"
         contentClassName="p-5"
       >
@@ -130,17 +240,50 @@ export function SearchesView({
             isProcessing={isProcessing}
             onStart={startSearch}
           />
-          {isProcessing ? <SearchProgress activeStage={activeStage} /> : null}
+          {isProcessing && activeSearch ? (
+            <SearchProgress
+              stage={activeSearch.processingStage}
+              progress={activeSearch.progress}
+            />
+          ) : null}
         </div>
       </SectionCard>
 
       {notification ? (
         <div
-          role="status"
-          aria-live="polite"
-          className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
+          className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm font-medium ${
+            notificationTone === "error"
+              ? "border-red-200 bg-red-50 text-red-800"
+              : "border-emerald-200 bg-emerald-50 text-emerald-800"
+          }`}
         >
-          {notification}
+          <span role="status" aria-live="polite">
+            {notification}
+          </span>
+          {latestCompletedSearchId ? (
+            <Link
+              href={`/prospectos?searchId=${latestCompletedSearchId}`}
+              className="min-h-10 rounded-lg bg-emerald-700 px-4 py-2.5 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+            >
+              Abrir prospectos encontrados
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+
+      {repeatedInput ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <span>
+            La búsqueda coincide con otra realizada durante las últimas 24
+            horas.
+          </span>
+          <button
+            type="button"
+            onClick={() => startSearch(repeatedInput, true)}
+            className="min-h-10 rounded-lg bg-amber-700 px-4 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700"
+          >
+            Repetir búsqueda
+          </button>
         </div>
       ) : null}
 
@@ -148,7 +291,27 @@ export function SearchesView({
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.75fr)]">
         <div className="space-y-6">
-          <SearchHistoryTable searches={filteredSearches} />
+          <SearchHistoryTable
+            searches={filteredSearches}
+            onRetry={retrySearch}
+            retryingId={retryingId}
+            onAnalyzeSites={(id) => void analyzeSites(id)}
+            analyzingSitesId={analyzingSitesId}
+          />
+          <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs leading-5 text-slate-500">
+            Los resultados de descubrimiento y sus sitios son datos temporales
+            proporcionados por{" "}
+            <a
+              href="https://www.google.com/maps"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-blue-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+            >
+              Google Places
+            </a>
+            . Se consideran provisionales hasta verificarlos en el sitio
+            oficial.
+          </p>
           <PanamaOpportunityMap />
         </div>
         <div className="space-y-6">

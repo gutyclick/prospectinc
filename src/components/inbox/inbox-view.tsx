@@ -3,6 +3,15 @@
 import { Clock3 } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import {
+  getDraftResponseAction,
+  getInboxItemsAction,
+  markResponseSentAction,
+  recordManualInboundAction,
+  saveDraftResponseAction,
+  transitionConversationAction,
+} from "@/app/actions/data";
+
 import { ConversationDetail } from "@/components/inbox/conversation-detail";
 import { ConversationList } from "@/components/inbox/conversation-list";
 import { InboxFilterBar } from "@/components/inbox/inbox-filter-bar";
@@ -13,7 +22,6 @@ import {
   type InboxFilter,
 } from "@/lib/domain/inbox-filters";
 import type { InboxItem, Proposal } from "@/lib/domain";
-import { conversationRepository, prospectRepository } from "@/lib/repositories";
 
 export function InboxView({
   initialItems,
@@ -40,6 +48,7 @@ export function InboxView({
     initialSelected?.followUpAt?.slice(0, 16) ?? "",
   );
   const [notice, setNotice] = useState("");
+  const [receivedResponse, setReceivedResponse] = useState("");
   const filtered = useMemo(
     () => items.filter((item) => matchesInboxFilter(item, filter)),
     [filter, items],
@@ -55,7 +64,12 @@ export function InboxView({
   ).length;
 
   async function refresh(message: string) {
-    setItems(await conversationRepository.getInboxItems(50));
+    const result = await getInboxItemsAction();
+    if (!result.ok) {
+      setNotice(result.error);
+      return;
+    }
+    setItems(result.data);
     setNotice(message);
   }
 
@@ -69,55 +83,82 @@ export function InboxView({
     setSelectedId(id);
     setDetailVisible(true);
     setFollowUpAt(item.followUpAt?.slice(0, 16) ?? "");
-    void conversationRepository
-      .getDraftResponse(id)
-      .then((draft) => setResponse(draft || intelligence.suggestedResponse));
+    void getDraftResponseAction(id).then((result) =>
+      setResponse(
+        result.ok && result.data ? result.data : intelligence.suggestedResponse,
+      ),
+    );
   }
 
   async function saveResponse() {
     if (!selected) return;
-    await conversationRepository.saveDraftResponse(selected.id, response);
-    setNotice("Respuesta guardada en el repositorio simulado.");
+    const result = await saveDraftResponseAction(selected.id, response);
+    setNotice(result.ok ? "Respuesta guardada correctamente." : result.error);
   }
   async function markSent() {
     if (!selected || !response.trim()) return;
-    await conversationRepository.markResponseSent(selected.id, response.trim());
+    const result = await markResponseSentAction(selected.id, response.trim());
+    if (!result.ok) {
+      setNotice(result.error);
+      return;
+    }
     await refresh(
       "Respuesta marcada como enviada. No se envió ningún mensaje real.",
     );
   }
   async function schedule() {
     if (!selected || !followUpAt) return;
-    await conversationRepository.scheduleFollowUp(
-      selected.id,
-      new Date(followUpAt).toISOString(),
-    );
-    await prospectRepository.updateCommercialStatus(
-      selected.prospectId,
-      "seguimiento",
-    );
+    const result = await transitionConversationAction({
+      id: selected.id,
+      status: "seguimiento",
+      commercialStatus: "seguimiento",
+      nextAction: "Realizar seguimiento programado",
+      followUpAt: new Date(followUpAt).toISOString(),
+    });
+    if (!result.ok) {
+      setNotice(result.error);
+      return;
+    }
     await refresh("Seguimiento programado correctamente.");
+  }
+  async function recordInbound() {
+    if (!selected || !receivedResponse.trim()) return;
+    const result = await recordManualInboundAction(
+      selected.id,
+      receivedResponse.trim(),
+    );
+    if (!result.ok) return setNotice(result.error);
+    setReceivedResponse("");
+    await refresh("Respuesta recibida registrada manualmente.");
   }
   async function negotiation() {
     if (!selected) return;
-    await prospectRepository.updateCommercialStatus(
-      selected.prospectId,
-      "negociacion",
-    );
-    await conversationRepository.updateStatus(
-      selected.id,
-      "respondio",
-      "Preparar conversación de negociación",
-    );
+    const result = await transitionConversationAction({
+      id: selected.id,
+      status: "respondio",
+      commercialStatus: "negociacion",
+      nextAction: "Preparar conversación de negociación",
+      followUpAt: null,
+    });
+    if (!result.ok) {
+      setNotice(result.error);
+      return;
+    }
     await refresh("Conversación marcada como negociación.");
   }
   async function won() {
     if (!selected) return;
-    await prospectRepository.updateCommercialStatus(
-      selected.prospectId,
-      "ganado",
-    );
-    await conversationRepository.updateStatus(selected.id, "cerrada", null);
+    const result = await transitionConversationAction({
+      id: selected.id,
+      status: "cerrada",
+      commercialStatus: "ganado",
+      nextAction: null,
+      followUpAt: null,
+    });
+    if (!result.ok) {
+      setNotice(result.error);
+      return;
+    }
     await refresh("Prospecto marcado como ganado.");
   }
   async function discard() {
@@ -126,11 +167,17 @@ export function InboxView({
       !window.confirm("¿Descartar esta conversación y cerrar su seguimiento?")
     )
       return;
-    await prospectRepository.updateCommercialStatus(
-      selected.prospectId,
-      "descartado",
-    );
-    await conversationRepository.updateStatus(selected.id, "cerrada", null);
+    const result = await transitionConversationAction({
+      id: selected.id,
+      status: "cerrada",
+      commercialStatus: "descartado",
+      nextAction: null,
+      followUpAt: null,
+    });
+    if (!result.ok) {
+      setNotice(result.error);
+      return;
+    }
     await refresh("Conversación descartada.");
   }
 
@@ -184,8 +231,11 @@ export function InboxView({
               classification={classification}
               response={response}
               followUpAt={followUpAt}
+              receivedResponse={receivedResponse}
               onResponseChange={setResponse}
               onFollowUpChange={setFollowUpAt}
+              onReceivedResponseChange={setReceivedResponse}
+              onRecordInbound={() => void recordInbound()}
               onBack={() => setDetailVisible(false)}
               onSave={() => void saveResponse()}
               onSent={() => void markSent()}

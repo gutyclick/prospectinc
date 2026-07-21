@@ -20,8 +20,6 @@ const opportunityOptions = [
 
 const sourceOptions = [
   { value: "google-places", label: "Google Places" },
-  { value: "instagram", label: "Instagram" },
-  { value: "directorios", label: "Directorios" },
 ] as const;
 
 const fieldClassName =
@@ -40,16 +38,17 @@ export function SearchConfigurationForm({
     defaultValues: {
       query: "",
       location: "",
-      resultLimit: 50,
+      country: "Panamá",
+      resultLimit: 20,
       preferredChannel: "web-whatsapp",
       opportunityLevel: "todos",
-      sources: ["google-places", "instagram"],
+      sources: ["google-places"],
     },
   });
 
   return (
     <form onSubmit={handleSubmit(onStart)} noValidate>
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
         <div>
           <label
             htmlFor="search-query"
@@ -80,6 +79,21 @@ export function SearchConfigurationForm({
               {errors.query.message}
             </p>
           ) : null}
+        </div>
+
+        <div>
+          <label
+            htmlFor="search-country"
+            className="text-xs font-semibold text-slate-700"
+          >
+            País
+          </label>
+          <input
+            id="search-country"
+            className={`${fieldClassName} mt-2`}
+            placeholder="Ej. Panamá"
+            {...register("country")}
+          />
         </div>
 
         <div>
@@ -127,7 +141,7 @@ export function SearchConfigurationForm({
             id="result-limit"
             type="number"
             min={1}
-            max={100}
+            max={20}
             className={`${fieldClassName} mt-2`}
             aria-invalid={Boolean(errors.resultLimit)}
             aria-describedby={

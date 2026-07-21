@@ -1,20 +1,20 @@
 import { DashboardView } from "@/components/dashboard/dashboard-view";
 import {
-  activityRepository,
   getDashboardMetrics,
   getProspectingFunnel,
+  getRepositories,
   getTodayRecommendations,
-  prospectRepository,
 } from "@/lib/repositories";
 
 export default async function HomePage() {
+  const repositories = await getRepositories();
   const [metrics, prospects, activities, funnel, recommendations] =
     await Promise.all([
-      getDashboardMetrics(),
-      prospectRepository.getPriorityProspects(5),
-      activityRepository.getRecentActivities(4),
-      getProspectingFunnel(),
-      getTodayRecommendations(),
+      getDashboardMetrics(repositories),
+      repositories.prospects.getPriorityProspects(5),
+      repositories.activities.getRecentActivities(4),
+      getProspectingFunnel(repositories),
+      getTodayRecommendations(repositories),
     ]);
 
   return (

@@ -1,5 +1,15 @@
 # Arquitectura de Prospector AI
 
+## Inteligencia de prospectos y propuestas
+
+`ProspectIntelligenceProvider` separa la aplicación del proveedor. Producción usa `OpenAIProspectIntelligenceProvider` con Responses API y salida estructurada validada por Zod; las pruebas usan `FakeProspectIntelligenceProvider`. La clave y el modelo se leen exclusivamente en servidor.
+
+Los análisis parten de auditorías y contactos verificados, se identifican por hash, respetan un límite diario y se guardan en `ai_analyses` junto con modelo, versión del prompt y tokens disponibles. El puntaje final es híbrido y la IA controla como máximo un 10%. Las propuestas generadas se guardan como borradores editables y nunca se envían automáticamente.
+
+## Contacto manual
+
+Los enlaces `mailto:` y `wa.me` se preparan en la interfaz, pero abrirlos nunca se registra como envío. La RPC `record_manual_outreach` exige una propuesta revisada, contacto público verificado con fuente, ausencia de exclusión y confirmación humana; luego registra mensaje, conversación, actividad y seguimiento en una transacción. No existen envíos en lote, temporizadores de envío ni automatización de clics. Las respuestas recibidas se incorporan únicamente mediante registro manual explícito.
+
 ## Principios
 
 - Monolito modular en una sola aplicación Next.js.
@@ -27,7 +37,7 @@ Contratos de repositorio
 Adaptadores simulados (Fase 1)
 ```
 
-En fases posteriores, los adaptadores simulados podrán reemplazarse por Supabase y servicios externos sin reescribir la lógica visual ni el dominio.
+La Fase 2 incorpora Supabase Auth, migraciones PostgreSQL y clientes SSR, pero conserva los adaptadores simulados. Los repositorios se reemplazarán gradualmente sin reescribir la lógica visual ni el dominio.
 
 ## Organización prevista
 
@@ -110,7 +120,7 @@ La Bandeja combina conversaciones, prospectos y propuestas mediante sus reposito
 
 ## Integraciones futuras
 
-- **Supabase/PostgreSQL:** persistencia, consultas y eventualmente autenticación, únicamente en su fase.
+- **Supabase/PostgreSQL:** el esquema, RLS y la autenticación ya están versionados. Los repositorios reales todavía no sustituyen a los simulados.
 - **Motor de descubrimiento:** proveedores permitidos y trazables; queda prohibido el scraping de Google Maps.
 - **Analizador de páginas:** navegación controlada con Playwright y tareas con Trigger.dev cuando corresponda.
 - **OpenAI API:** asistencia para análisis y redacción con salidas revisables, nunca como fuente de contactos.
@@ -118,6 +128,30 @@ La Bandeja combina conversaciones, prospectos y propuestas mediante sus reposito
 - **WhatsApp:** enlaces click-to-chat; el usuario enviará manualmente.
 
 Cada integración se implementará como adaptador detrás de una interfaz propia, con configuración y errores aislados del dominio.
+
+## Autenticación y persistencia de la Fase 2
+
+- `src/proxy.ts` usa el convenio Proxy de Next.js 16 para renovar cookies mediante `@supabase/ssr` y `getClaims()`.
+- `src/lib/supabase/server.ts` crea un cliente por solicitud; no conserva sesiones en estado global.
+- `src/lib/auth/require-owner.ts` vuelve a validar el usuario con Auth en cada ruta interna y compara su correo normalizado con `APP_OWNER_EMAIL`.
+- `/login`, `/auth/confirm` y `/actualizar-contrasena` forman la superficie pública mínima de autenticación.
+- Las mutaciones de autenticación son Server Actions. La interfaz nunca recibe credenciales de servicio.
+- Las respuestas autenticadas usan `private, no-store`; no se habilita ISR en rutas con sesión.
+- `supabase/migrations` es la fuente de verdad del esquema y `src/types/database.types.ts` refleja sus tipos.
+- Todas las tablas comerciales tienen RLS. Las relaciones compuestas impiden vincular registros de propietarios distintos.
+
+## Repositorios persistentes
+
+`getRepositories()` compone los adaptadores por solicitud después de verificar al propietario. Fuera de pruebas, el único proveedor permitido es `supabase`; los mocks no forman parte del camino de producción.
+
+- Las rutas Server Components consultan interfaces de repositorio, nunca el SDK directamente.
+- Las mutaciones atraviesan Server Actions, vuelven a validar con Zod y revalidan las rutas afectadas.
+- Los adaptadores convierten filas `snake_case` al dominio y transforman errores externos en `RepositoryError`.
+- Prospectos y contactos se cargan por lotes; Bandeja agrupa conversaciones, mensajes, prospectos y contactos sin N+1.
+- Las operaciones que modifican varias tablas usan RPC PostgreSQL transaccionales.
+- Filtros, segmentos, embudos y CSV operan sobre datos reales recibidos desde el servidor.
+- El esquema conserva los nombres de dominio ya usados por la interfaz y expone alias generados como `qualified_count` y `official_website_url` para evolucionar sin duplicar fuentes de verdad.
+- `place_discovery_cache` separa el material temporal del proveedor de los campos permanentes de prospectos y aplica caducidad explícita.
 
 ## Seguridad y privacidad
 
@@ -139,3 +173,22 @@ Cada integración se implementará como adaptador detrás de una interfaz propia
 ## Evolución de arquitectura
 
 Las decisiones estructurales relevantes se documentarán aquí o mediante registros de decisión si crece su complejidad. Cualquier cambio en límites de módulos, persistencia, integraciones o estrategia de estado exige actualizar esta documentación en el mismo cambio.
+
+## Procesamiento en segundo plano con Trigger.dev
+
+Las búsquedas reales se encolan desde una Server Action y se ejecutan en `discover-businesses`. PostgreSQL conserva el estado, la etapa y el progreso; el tiempo real de Trigger acelera la interfaz, pero no sustituye a la base de datos como fuente de verdad. El identificador externo se persiste para recuperar una ejecución después de recargar la página.
+
+- Las tareas verifican `ownerId` en el servidor y usan un cliente `service_role` aislado en módulos `server-only`.
+- Las claves idempotentes y el índice parcial de búsquedas activas evitan ejecuciones duplicadas.
+- `analyze-search-websites` selecciona prospectos por lote y omite sitios inexistentes o auditados recientemente. Cada auditoría se ejecuta en la cola `website-analysis`, limitada a dos ejecuciones concurrentes.
+- `analyze-prospect-website` usa primero un fetch HTML limitado y recurre a Chromium para renderizado o captura. Cada navegación y recurso pasa por validación SSRF.
+- Las colas limitan la concurrencia y los errores permanentes no se reintentan; los transitorios usan backoff.
+- Los tokens públicos entregados al cliente quedan limitados a una ejecución y solo sirven para observarla.
+
+## Descubrimiento real con Google Places
+
+`BusinessDiscoveryProvider` devuelve un `BusinessDiscoveryResult` con negocios normalizados, contador de solicitudes y atribución. `GooglePlacesDiscoveryProvider` ejecuta exclusivamente Text Search (New) desde el servidor mediante POST, idioma español, región cuando puede determinarse, un FieldMask explícito y un máximo de 20 resultados. `FakeBusinessDiscoveryProvider` permite probar el contrato sin red. No se solicitan fotografías, reseñas, teléfonos, coordenadas, ratings ni Place Details.
+
+`BusinessDiscoveryService` crea la búsqueda, impide repeticiones idénticas durante 24 horas salvo confirmación, llama una vez al proveedor, normaliza y deduplica por `google_place_id`. La función PostgreSQL `persist_discovery_results` guarda prospectos, teléfonos con fuente, contadores y actividad en una transacción. Los fallos dejan el registro en estado `fallida` con un mensaje saneado.
+
+La telemetría registra únicamente el identificador interno y las cantidades de llamadas y resultados. La clave y el cuerpo completo del proveedor nunca se registran ni llegan al cliente.

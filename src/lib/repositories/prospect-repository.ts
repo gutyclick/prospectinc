@@ -24,6 +24,11 @@ export type ProspectRepository = {
     id: string,
     status: CommercialStatus,
   ): Promise<Prospect>;
+  addToExclusionList?(
+    type: "email" | "phone" | "whatsapp",
+    normalizedValue: string,
+    reason: string,
+  ): Promise<void>;
 };
 
 let prospects: Prospect[] = [...mockProspects];

@@ -12,6 +12,8 @@ export const mockSearches = z.array(searchSchema).parse([
     status: "completada",
     resultsCount: 50,
     opportunitiesCount: 12,
+    provisionalWebsiteCount: 38,
+    noWebsiteCount: 12,
     createdAt: "2026-07-18T14:00:00.000Z",
   },
   {
@@ -23,6 +25,8 @@ export const mockSearches = z.array(searchSchema).parse([
     status: "completada",
     resultsCount: 40,
     opportunitiesCount: 8,
+    provisionalWebsiteCount: 32,
+    noWebsiteCount: 8,
     createdAt: "2026-07-17T16:30:00.000Z",
   },
   {
@@ -34,6 +38,8 @@ export const mockSearches = z.array(searchSchema).parse([
     status: "analizando",
     resultsCount: 24,
     opportunitiesCount: 6,
+    provisionalWebsiteCount: 18,
+    noWebsiteCount: 6,
     createdAt: "2026-07-17T13:20:00.000Z",
   },
   {
@@ -45,6 +51,8 @@ export const mockSearches = z.array(searchSchema).parse([
     status: "completada",
     resultsCount: 60,
     opportunitiesCount: 15,
+    provisionalWebsiteCount: 45,
+    noWebsiteCount: 15,
     createdAt: "2026-07-15T18:00:00.000Z",
   },
 ]);

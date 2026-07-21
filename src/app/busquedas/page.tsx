@@ -1,10 +1,11 @@
 import { SearchesView } from "@/components/searches/searches-view";
-import { activityRepository, searchRepository } from "@/lib/repositories";
+import { getRepositories } from "@/lib/repositories";
 
 export default async function BusquedasPage() {
+  const repositories = await getRepositories();
   const [searches, activities] = await Promise.all([
-    searchRepository.getRecentSearches(10),
-    activityRepository.getRecentActivities(5),
+    repositories.searches.getRecentSearches(10),
+    repositories.activities.getRecentActivities(5),
   ]);
 
   return (

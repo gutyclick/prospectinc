@@ -78,6 +78,25 @@ describe("centro de prospectos", () => {
     ).toBeInTheDocument();
   });
 
+  it("permite iniciar un reanálisis manual del sitio", async () => {
+    const user = userEvent.setup();
+    await renderProspectsView();
+
+    await user.click(
+      screen.getByRole("button", { name: "Ver Taller AutoMax" }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Analizar sitio web" }),
+    );
+
+    expect(
+      await screen.findByText(/análisis del sitio se inició en segundo plano/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Análisis en curso…" }),
+    ).toBeDisabled();
+  });
+
   it("añade manualmente un prospecto al repositorio y a la tabla", async () => {
     const user = userEvent.setup();
     await renderProspectsView();
@@ -98,9 +117,7 @@ describe("centro de prospectos", () => {
     );
 
     expect(
-      await screen.findByText(
-        "Café Horizonte se añadió al repositorio simulado.",
-      ),
+      await screen.findByText("Café Horizonte se guardó correctamente."),
     ).toBeInTheDocument();
     expect(screen.getAllByText("Café Horizonte")).not.toHaveLength(0);
     await expect(prospectRepository.getAll()).resolves.toHaveLength(7);
